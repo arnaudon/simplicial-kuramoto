@@ -22,9 +22,7 @@ def compute_eig_projection(G):
     return B, v, w
 
 def Modules_full(Nc,Nn,Nie):
-    """
-    Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
-    """
+    #Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
     # Nc: number of modules
     # Nn: number of nodes per module
     # Nie: number of edges between modules (added linearly), has to be smaller than Nn(Nn-1)/2
@@ -51,9 +49,9 @@ def Modules_full(Nc,Nn,Nie):
 
 
 def order_parameter(ts,Nc,Nn):
-    # Computes the order parameter for the whole graph (assuming there are more time points than nodes)
+    # Computes the order parameter for the whole system and each community (assuming there are more time points than nodes)
+    # need to have it more flexible based on node indices
     d1,d2=ts.shape
-    print d1,d2
     if (d1>d2):
         op=np.zeros((Nc+1,d1))
         op[0,:]=np.absolute(np.exp(1j*ts).sum(1))/d2
@@ -63,9 +61,17 @@ def order_parameter(ts,Nc,Nn):
         op=np.zeros((Nc+1,d2))
         op[0,:]=np.absolute(np.exp(1j*ts).sum(0))/d1
         for i in range(Nc):
-            print i*Nn,(i+1)*Nn-1,ts[i*Nn:(i+1)*Nn,:].shape
             op[i+1,:]=np.absolute(np.exp(1j*ts[i*Nn:(i+1)*Nn,:]).sum(0))/Nn
     return op
+
+def Shanahan_indices(op):
+    # compute the two Shanahan indices
+    # l is the average across communities of the variance of the order parameter within communities ("global" metastability)
+    # chi is the avarage across time of the variance of the order parameter across communities at time t (Chimeraness of the system)
+    # op should have dimensions (number of communities+1,time), the plus one is for global order parameter on the first row
+    l=np.var(op[1:op.shape[1]],axis=1).mean()
+    chi=np.var(op[1:op.shape[1]],axis=0).mean()
+    return l,chi
 
 #compute the Delta tensors naively
 def Delta_1(Bv):
@@ -82,26 +88,26 @@ def Delta_4(Bv):
 
 
 #models
-def kuramoto_full_theta(t, theta, B):
-    return -B.T.dot(np.sin(B.dot(theta)))
+def kuramoto_full_theta(t, theta, B, a, omega_0, degree):
+    return omega_0-a*(1/degree)*B.T.dot(np.sin(B.dot(theta)))
 
-def kuramoto_full_gamma(t, gamma, B, v):
-    return -(B.T.dot(np.sin(B.dot(gamma.dot(v.T))))).dot(v)
+def kuramoto_full_gamma(t, gamma, B, v,a,omega_0,degree):
+    return omega_0.dot(v)-a*(1/degree)*(B.T.dot(np.sin(B.dot(gamma.dot(v.T))))).dot(v)
 
 def kuramoto_full_theta_alpha(t, theta, B, alpha, a, omega_0, degree):
     return omega_0-a*(1/degree)*np.dot(B.T,np.sin(np.dot(B,theta)-alpha*np.ones(B.shape[0])))
 
 
-def integrate_kuramoto_full_theta(B, theta_0, t_max, n_t):
+def integrate_kuramoto_full_theta(B, theta_0, t_max, n_t, a, omega_0, degree):
     
-    return integ.solve_ivp(lambda t, theta: kuramoto_full_theta(t, theta, B), [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t))
+    return integ.solve_ivp(lambda t, theta: kuramoto_full_theta(t, theta, B, a, omega_0, degree), [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t),method='LSODA',rtol=1.49012e-8,atol=1.49012e-8)
 
-def integrate_kuramoto_full_gamma(B, v, gamma_0, t_max, n_t):
+def integrate_kuramoto_full_gamma(B, v, gamma_0, t_max, n_t,a,omega_0,degree):
     
-    return  integ.solve_ivp(lambda t, theta: kuramoto_full_gamma(t, theta, B, v), [0, t_max], gamma_0, t_eval = np.linspace(0, t_max, n_t))
+    return  integ.solve_ivp(lambda t, theta: kuramoto_full_gamma(t, theta, B, v,a,omega_0,degree), [0, t_max], gamma_0, t_eval = np.linspace(0, t_max, n_t),method='LSODA',rtol=1.49012e-8,atol=1.49012e-8)
 
 def integrate_kuramoto_full_theta_alpha(B, theta_0, t_max, n_t, alpha, a, omega_0, degree):
     
-    return integ.solve_ivp(lambda t, theta: kuramoto_full_theta_alpha(t, theta, B, alpha, a, omega_0, degree), [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t))
+    return integ.solve_ivp(lambda t, theta: kuramoto_full_theta_alpha(t, theta, B, alpha, a, omega_0, degree), [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t),method='LSODA',rtol=1.49012e-8,atol=1.49012e-8)
 
 
