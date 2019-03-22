@@ -74,17 +74,21 @@ def Shanahan_indices(op):
     return l,chi
 
 #compute the Delta tensors naively
-def Delta_1(Bv):
-    return np.asarray(Bv.sum(0)).flatten()
+def Delta_1(B, v, w):
+    Bv = np.array(B.dot(v)) #edges by modes
+    return Bv.sum(0)/w
 
-def Delta_2(Bv):
-    return (Bv[:, :, np.newaxis]*Bv[:, np.newaxis,: ]).sum(0)
+def Delta_2(B, v, w):
+    Bv = np.array(B.dot(v)) #edges by modes
+    return (Bv[:, :, np.newaxis]*Bv[:, np.newaxis,: ]).sum(0)/w[:, np.newaxis]
 
-def Delta_3(Bv):
-    return (Bv[:, :, np.newaxis, np.newaxis]*Bv[:, np.newaxis, :, np.newaxis]*Bv[:, np.newaxis, np.newaxis, :]).sum(0)
+def Delta_3(B, v, w):
+    Bv = np.array(B.dot(v)) #edges by modes
+    return (Bv[:, :, np.newaxis, np.newaxis]*Bv[:, np.newaxis, :, np.newaxis]*Bv[:, np.newaxis, np.newaxis, :]).sum(0)/w[:, np.newaxis, np.newaxis]
 
-def Delta_4(Bv):
-    return (Bv[:, :, np.newaxis, np.newaxis, np.newaxis]*Bv[:, np.newaxis, :, np.newaxis, np.newaxis]*Bv[:, np.newaxis, np.newaxis, :, np.newaxis]*Bv[:, np.newaxis, np.newaxis, np.newaxis, :]).sum(0)
+def Delta_4(B, v, w):
+    Bv = np.array(B.dot(v)) #edges by modes
+    return (Bv[:, :, np.newaxis, np.newaxis, np.newaxis]*Bv[:, np.newaxis, :, np.newaxis, np.newaxis]*Bv[:, np.newaxis, np.newaxis, :, np.newaxis]*Bv[:, np.newaxis, np.newaxis, np.newaxis, :]).sum(0)/w[:, np.newaxis, np.newaxis, np.newaxis]
 
 
 #models
