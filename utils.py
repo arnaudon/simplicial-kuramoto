@@ -10,6 +10,9 @@ def compute_eig_projection(G):
     """
     
     B = nx.incidence_matrix(G,oriented = True).toarray().T
+    B=np.repeat(B,2,axis=0)
+    for i in range(0,B.shape[0],2):
+        B[i,:]=-B[i,:]
     L = nx.laplacian_matrix(G).toarray()
 
     w, v = np.linalg.eig(L) #eigenvalues/eigenvectors
@@ -21,7 +24,7 @@ def compute_eig_projection(G):
     
     return B, v, w
 
-def Modules_full(Nc,Nn,Nie):
+def Modules_full(Nc,Nn,Nie,rando=True):
     #Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
     # Nc: number of modules
     # Nn: number of nodes per module
@@ -34,16 +37,24 @@ def Modules_full(Nc,Nn,Nie):
              for k in range(j+1,Nn+1):
                     G.add_edge((i*Nn)+j,(i*Nn)+k)
     
-    Neig=np.linspace(1,Nn,Nn).astype(int)
-    if(Nie>0):
-        nr,bonus=np.divmod(Nie,Nn)
-        for c1 in range(Nc):
-            for c2 in range(c1+1,Nc):
-                for i in range(nr):
-                    for j in range(Nn):
-                        G.add_edge(Neig.tolist()[j]+c1*Nn,np.roll(Neig,-i).tolist()[j]+c2*Nn)
-                for j in range(bonus):
-                    G.add_edge(Neig.tolist()[j]+c1*Nn,np.roll(Neig,-(nr)).tolist()[j]+c2*Nn)
+    if(rando):
+        for i in range(Nc):
+            for j in range(i+1,Nc):
+                source=np.random.randint(i*Nn+1,(i+1)*Nn,Nie).tolist()
+                sink=np.random.randint(j*(Nn+1)+1,(j+1)*Nn,Nie).tolist()
+                for e in range(Nie):
+                    G.add_edge(source[e],sink[e])
+    else:
+        Neig=np.linspace(1,Nn,Nn).astype(int)
+        if(Nie>0):
+            nr,bonus=np.divmod(Nie,Nn)
+            for c1 in range(Nc):
+                for c2 in range(c1+1,Nc):
+                    for i in range(nr):
+                        for j in range(Nn):
+                            G.add_edge(Neig.tolist()[j]+c1*Nn,np.roll(Neig,-i).tolist()[j]+c2*Nn)
+                    for j in range(bonus):
+                        G.add_edge(Neig.tolist()[j]+c1*Nn,np.roll(Neig,-(nr)).tolist()[j]+c2*Nn)
 
     return G
 
@@ -99,7 +110,8 @@ def kuramoto_full_gamma(t, gamma, B, v,a,omega_0,degree):
     return omega_0.dot(v)-a*(1/degree)*(B.T.dot(np.sin(B.dot(gamma.dot(v.T))))).dot(v)
 
 def kuramoto_full_theta_alpha(t, theta, B, alpha, a, omega_0, degree):
-    return omega_0-a*(1/degree)*np.dot(B.T,np.sin(np.dot(B,theta)-alpha*np.ones(B.shape[0])))
+    Bp=(np.abs(B)+B)/2
+    return omega_0-a*(1/degree)*Bp.T.dot(np.sin(B.dot(theta)+alpha*np.ones(B.shape[0])))
 
 
 def integrate_kuramoto_full_theta(B, theta_0, t_max, n_t, a, omega_0, degree):
