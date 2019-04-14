@@ -17,9 +17,9 @@ def compute_eig_projection(G):
     
     Bplus = 0.5*(np.abs(B) + B)
 
-    L = B.T.dot(B)#nx.laplacian_matrix(G).toarray()
+    L = Bplus.T.dot(B)#nx.laplacian_matrix(G).toarray()
 
-    w, v = np.linalg.eig(L) #eigenvalues/eigenvectors
+    w, v = np.linalg.eigh(L) #eigenvalues/eigenvectors
     
     #sort them by increasing w
     w_sort = np.argsort(w)
@@ -36,18 +36,17 @@ def compute_eig_projection(G):
 def kuramoto_full_theta(t, theta, B, Bplus, alpha, a, omega_0, degree):
     #kuramoto ODE in physical space
     
-    return omega_0 - a*(1/degree) * Bplus.T.dot( np.sin( B.dot(theta) + alpha) )
+    return omega_0 - a/degree * Bplus.T.dot( np.sin( B.dot(theta) + alpha) )
 
 
 def kuramoto_full_gamma(t, gamma, B, Bplus, v, alpha, a, omega_0, degree):
     #kuramoto ODE in spectral space
-
-    return omega_0.dot(v) - a*(1/degree) * (Bplus.T.dot( np.sin( B.dot( gamma.dot(v.T) +alpha) ) ) ).dot(v)
+    return omega_0.dot(v) - a/degree * (Bplus.T.dot( np.sin( B.dot(gamma.dot(v.T)) + alpha) ) ).dot(v)
 
 def integrate_kuramoto_full_theta(B, Bplus, theta_0, t_max, n_t, alpha, a, omega_0):
     #integrate Kuramoto ODE in physical space
     
-    degree=np.absolute(B).sum(0)
+    degree=np.absolute(Bplus).sum(0)
     kuramoto_integ = lambda t, theta: kuramoto_full_theta(t, theta, B, Bplus, alpha, a, omega_0, degree)
     
     return integ.solve_ivp(kuramoto_integ, [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t), method='LSODA', rtol = 1.49012e-8, atol = 1.49012e-8)
@@ -55,7 +54,7 @@ def integrate_kuramoto_full_theta(B, Bplus, theta_0, t_max, n_t, alpha, a, omega
 def integrate_kuramoto_full_gamma(B, Bplus, v, gamma_0, t_max, n_t, alpha, a, omega_0):
     #integrate Kuramoto ODE in spectral space
     
-    degree=np.absolute(B).sum(0)
+    degree=np.absolute(Bplus).sum(0)
     kuramoto_integ = lambda t, theta: kuramoto_full_gamma(t, theta, B, Bplus, v, alpha, a, omega_0, degree)
     
     return  integ.solve_ivp(kuramoto_integ, [0, t_max], gamma_0, t_eval = np.linspace(0, t_max, n_t), method='LSODA', rtol = 1.49012e-8, atol = 1.49012e-8)
@@ -145,22 +144,90 @@ def Shanahan_indices(op):
     return l, chi
 
 #######################################
-#compute the Delta tensors naively
+# approximate Kuramoto
 ######################################
+
 
 def Delta_1(Bv, Bplusv):
     return Bplusv.sum(0)
 
 def Delta_2(Bv, Bplusv):
-
     return (Bplusv[:, :, np.newaxis]*Bv[:, np.newaxis,: ]).sum(0)
 
 def Delta_3(Bv, Bplusv):
-
     return (Bplusv[:, :, np.newaxis, np.newaxis]*Bv[:, np.newaxis, :, np.newaxis]*Bv[:, np.newaxis, np.newaxis, :]).sum(0)
 
 def Delta_4(Bv, Bplusv):
-
     return (Bplusv[:, :, np.newaxis, np.newaxis, np.newaxis]*Bv[:, np.newaxis, :, np.newaxis, np.newaxis]*Bv[:, np.newaxis, np.newaxis, :, np.newaxis]*Bv[:, np.newaxis, np.newaxis, np.newaxis, :]).sum(0)
 
 
+
+def Delta_ids(Bv, Bplusv, w, th_3, th_4):
+    """
+    find the indices of above threshold elements of D_3 and D_4
+    """
+    
+    w_0 = w.copy()
+    w_0[0] = 1
+
+    D3 = Delta_3(Bv, Bplusv)/w_0[:,np.newaxis,np.newaxis]
+    D4 = Delta_4(Bv, Bplusv)/w_0[:,np.newaxis,np.newaxis,np.newaxis]
+
+    D3_id = np.argwhere(abs(D3) > th_3)
+    D4_id = np.argwhere(abs(D4) > th_4)
+    
+    return D3_id, D4_id
+
+def kuramoto_approx(t, gamma, D_1, D_3, D_4, w,  alpha, a, omega_0, degree, D3_id, D4_id):
+    """
+    kuramoto ODE in spectral space
+    """
+
+    #low order terms
+    f = -(alpha - alpha**3/6.)*D_1 - (1. - alpha**2/2.)*gamma*w
+
+    #cubic term
+    for i in D4_id:
+        f[i[0]] += 1./6.*D_4[i[0],i[1],i[2],i[3]]*gamma[i[1]]*gamma[i[2]]*gamma[i[3]]
+        
+    #quadratic term
+    for i in D3_id:
+        f[i[0]] += alpha/2.*D_3[i[0],i[1],i[2]]*gamma[i[1]]*gamma[i[2]]
+
+    return f/degree
+
+def integrate_kuramoto_approx(B, Bplus, v, w, gamma_0, t_max, n_t, alpha, a, omega_0, th_3, th_4):
+    """
+    integrate approximated Kuramoto ODE in spectral space
+    """
+    
+    degree = np.absolute(Bplus).sum(0)
+    
+    Bv = np.array(B.dot(v)) #edges by modes
+    Bplusv = np.array(Bplus.dot(v)) #edges by modes
+    
+    D1 = Delta_1(Bv, Bplusv)
+    D3 = Delta_3(Bv, Bplusv)
+    D4 = Delta_4(Bv, Bplusv)
+    
+    D3_id, D4_id = Delta_ids(Bv, Bplusv, w, th_3, th_4)
+    
+    print('Using ', len(D3_id),'elements of Delta_3')
+    print('Using ', len(D4_id),'elements of Delta_4')
+    
+    kuramoto_integ = lambda t, gamma: kuramoto_approx(t, gamma, D1, D3, D4, w, alpha, a, omega_0, degree, D3_id, D4_id)
+    
+    sol = integ.solve_ivp(kuramoto_integ, [0, t_max], gamma_0, t_eval = np.linspace(0, t_max, n_t), method='LSODA', rtol = 1.49012e-8, atol = 1.49012e-8)
+    
+    return sol, len(D3_id), len(D4_id)
+
+def compute_error(sol_full, sol_approx):
+    """
+    compute relative error between two solutions
+    """
+    
+    err = []
+    for t in range(np.shape(sol_full.y)[1]):
+        err.append(np.linalg.norm(sol_full.y[1:,t]-sol_approx.y[1:,t]) /np.linalg.norm(sol_full.y[:,t]))
+        
+    return err
