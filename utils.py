@@ -38,6 +38,10 @@ def kuramoto_full_theta(t, theta, B, Bplus, alpha, a, omega_0, degree):
     
     return omega_0 - a/degree * Bplus.T.dot( np.sin( B.dot(theta) + alpha) )
 
+def kuramoto_full_theta_weighted(t, theta, B, Bplus, alpha, a, omega_0, degree, W_e):
+    #kuramoto ODE in physical space
+    
+    return omega_0 - a/degree * Bplus.T.dot(W_e.dot( np.sin( B.dot(theta) + alpha) ))
 
 def kuramoto_full_gamma(t, gamma, B, Bplus, v, alpha, a, omega_0, degree):
     #kuramoto ODE in spectral space
@@ -48,6 +52,14 @@ def integrate_kuramoto_full_theta(B, Bplus, theta_0, t_max, n_t, alpha, a, omega
     
     degree=np.absolute(Bplus).sum(0)
     kuramoto_integ = lambda t, theta: kuramoto_full_theta(t, theta, B, Bplus, alpha, a, omega_0, degree)
+    
+    return integ.solve_ivp(kuramoto_integ, [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t), method='LSODA', rtol = 1.49012e-8, atol = 1.49012e-8)
+
+def integrate_kuramoto_full_theta_weighted(B, Bplus, theta_0, t_max, n_t, alpha, a, omega_0, W_e):
+    #integrate Kuramoto ODE in physical space
+    
+    degree=np.diag(Bplus.T.dot(W_e.dot(B)))
+    kuramoto_integ = lambda t, theta: kuramoto_full_theta_weighted(t, theta, B, Bplus, alpha, a, omega_0, degree, W_e)
     
     return integ.solve_ivp(kuramoto_integ, [0, t_max], theta_0, t_eval = np.linspace(0, t_max, n_t), method='LSODA', rtol = 1.49012e-8, atol = 1.49012e-8)
 
