@@ -24,6 +24,7 @@ class SimplicialComplex:
         self.n_edges = len(self.graph.edges)
 
         self.create_node_incidence_matrix()
+        self.create_node_incidence_matrix_alt()
         self.create_edge_incidence_matrix()
         self.create_edge_weights_matrix()
         self.degree = np.array([len(self.graph[u]) for u in self.graph])
@@ -42,16 +43,10 @@ class SimplicialComplex:
         """Create node incidence matrix."""
         self.node_incidence_matrix = nx.incidence_matrix(self.graph, oriented=True).T
 
-    def create_edge_incidence_matrix(self):
-        """Create edge incidence matrix."""
-        if self.faces is not None:
-            raise Exception("Not working yet!")
-            # self.edge_incidence_matrix = nx.incidence_matrix(self.graph, oriented = True).T
-        else:
-            self.edge_incidence_matrix = None
-
-        # signed incidence matrices for triangles
-        A=self.graph
+    def create_node_incidence_matrix_alt(self):
+        """ Create node incidence matrix in lexicographic order. """
+        
+        A=nx.to_numpy_matrix(self.graph)
         Nn=A.shape[0]
         Ne=int(np.sum(A)/2)
         #print Nn, Ne
@@ -66,15 +61,39 @@ class SimplicialComplex:
                     e[count,0]=i
                     e[count,1]=j
                     count+=1
-        print "edges"
-        print e
+        #print("edges")
+        #print(e)
         I=np.zeros((Ne,Nn))
         for i in range(Ne):
             I[i,int(e[i,0])]=1
             I[i,int(e[i,1])]=-1
         #print I
-
+        self.node_incidence_matrix_alt=I
+        
+    def create_edge_incidence_matrix(self):
+        """Create edge incidence matrix."""
+        #if self.faces is not None:
+        #    raise Exception("Not working yet!")
+            # self.edge_incidence_matrix = nx.incidence_matrix(self.graph, oriented = True).T
+        #else:
+            #self.edge_incidence_matrix = None
+        
         # Edge incidence matrix
+        A=nx.to_numpy_matrix(self.graph)
+        Nn=A.shape[0]
+        Ne=int(np.sum(A)/2)
+        
+        e=np.zeros((Ne,2))
+        count=0;
+        for i in range(Nn):
+            for j in range(i+1,Nn):
+                if(A[i,j]>0):
+                    e[count,0]=i
+                    e[count,1]=j
+                    count+=1
+        #print("edges")
+        #print(e)
+            
         Nf=0
         for i in range(Nn):
             for j in range(i+1,Nn):
@@ -93,8 +112,8 @@ class SimplicialComplex:
                         f[count,1]=j
                         f[count,2]=k
                         count+=1
-        print "faces"
-        print f
+        #print("faces")
+        #print(f)
         II=np.zeros((Nf,Ne))
         for i in range(f.shape[0]):
             for j in [0,-1,-2]:
@@ -113,6 +132,6 @@ class SimplicialComplex:
         self.edge_incidence_matrix=II
 #        return I,II#,ntrie, e#, len(ntrie)
 
-    def flip_edge_orientation(self, edge_index):
+    def flip_edge_orientation(self, edge_index): #need to follow the consequence of the change down to faces
         """Flip the orientation of an edge."""
         self.node_incidence_matrix[edge_index] *= -1

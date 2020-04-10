@@ -1,6 +1,8 @@
 """Plotting functions."""
 import matplotlib.pyplot as plt
-
+import numpy as np
+from scipy.linalg import null_space
+#from utils import *
 
 def plot_node_kuramoto(node_results):
     """Basic plot for node kuramoto."""
@@ -9,7 +11,7 @@ def plot_node_kuramoto(node_results):
     plt.xlabel("time")
     plt.ylabel("mode id")
 
-def plot_flow(initial_phase,simpicial_somplex,result,plotname=None):
+def plot_flow(initial_phase,simplicial_complex,result,plotname="Test"):
     """ Some outputs (curl, div, etc ...) are only useful for understanding what is happening """
     times = result.t
     phase = result.y
@@ -19,13 +21,13 @@ def plot_flow(initial_phase,simpicial_somplex,result,plotname=None):
     
     plt.figure()
     plt.imshow(np.mod(np.around(phase,10),np.around(2*np.pi,10)), aspect='auto',cmap='bwr')
-    plt.title(plotname+' phases')
+    plt.title('Phases')
     plt.colorbar()
     
-    op=order_parameter(phase, 4, 1) # that is in the utils.py
-    plt.figure()
-    plt.title(plotname+' order parameter')
-    plt.plot(op[0,:])
+    #op=order_parameter(phase, 4, 1) # that is in the utils.py
+    #plt.figure()
+    #plt.title('Order parameter')
+    #plt.plot(op[0,:])
 
     print('\theta_0: ', initial_phase)
     print('\theta_final: ',phase[:,-1])
