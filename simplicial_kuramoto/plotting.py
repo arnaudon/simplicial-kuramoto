@@ -9,9 +9,28 @@ from scipy.linalg import null_space
 def plot_node_kuramoto(node_results):
     """Basic plot for node kuramoto."""
     plt.figure()
-    plt.imshow(node_results.y, aspect="auto")
+    plt.imshow(
+        node_results.y,
+        aspect="auto",
+        cmap="bwr",
+        extent=(node_results.t[0], node_results.t[-1], 0, len(node_results.y)),
+    )
     plt.xlabel("time")
     plt.ylabel("mode id")
+
+
+def plot_edge_kuramoto(edge_results):
+    """Basic plot for edge kuramoto."""
+    plt.figure()
+    plt.imshow(
+        edge_results.y,
+        # np.mod(np.around(edge_results.y, 10), np.around(2 * np.pi, 10)),
+        aspect="auto",
+        cmap="bwr",
+        extent=(edge_results.t[0], edge_results.t[-1], 0, len(edge_results.y)),
+    )
+    plt.title("Phases")
+    plt.colorbar()
 
 
 def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
@@ -21,15 +40,6 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
 
     B0 = simplicial_complex.node_incidence_matrix
     B1 = simplicial_complex.edge_incidence_matrix
-
-    plt.figure()
-    plt.imshow(
-        np.mod(np.around(phase, 10), np.around(2 * np.pi, 10)),
-        aspect="auto",
-        cmap="bwr",
-    )
-    plt.title("Phases")
-    plt.colorbar()
 
     # op=order_parameter(phase, 4, 1) # that is in the utils.py
     # plt.figure()
