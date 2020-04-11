@@ -1,9 +1,9 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
-from simplicial_kuramoto import SimplicialComplex, integrate_node_kuramoto, plotting
+from simplicial_kuramoto import (SimplicialComplex, integrate_node_kuramoto,
+                                 plotting)
 from simplicial_kuramoto.graph_generator import modular_graph
-
 
 graph = modular_graph(2, 10, 2)
 complex_test = SimplicialComplex(graph=graph)

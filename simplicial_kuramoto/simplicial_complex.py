@@ -7,7 +7,7 @@ import scipy as sc
 class SimplicialComplex:
     """Class representing a simplicial complex."""
 
-    def __init__(self, graph=None, faces=None):
+    def __init__(self, graph=None, faces=None, no_faces=False):
         """Initialise the class.
 
         Args: 
@@ -18,15 +18,27 @@ class SimplicialComplex:
             raise Exception("Please provide at least a graph")
 
         self.graph = graph
-        self.faces = faces
-        self.edgelist = list(self.graph.edges)
-        self.set_lexicographic()
-
         self.n_nodes = len(self.graph)
         self.n_edges = len(self.graph.edges)
-        # self.n_faces = len(self.faces)
+        self.edgelist = list(self.graph.edges)
+
+        self.set_lexicographic()
+
+        self.set_faces(faces, no_faces=no_faces)
 
         self.create_matrices()
+
+    def set_faces(self, faces=None, no_faces=False):
+        """Set faces from list of triangles if provided, or all triangles."""
+        if no_faces:
+            self.faces = None
+        elif faces == None:
+            all_cliques = nx.enumerate_all_cliques(self.graph)
+            self.faces = [clique for clique in all_cliques if len(clique) == 3]
+            self.n_faces = len(self.faces)
+        else:
+            self.faces = faces
+            self.n_faces = len(self.faces)
 
     def set_lexicographic(self):
         """Set orientation of edges in lexicographic order."""
@@ -49,7 +61,6 @@ class SimplicialComplex:
         self.create_node_weights_matrix()
         self.create_edge_weights_matrix()
         self.create_face_weights_matrix()
-        self.degree = np.array([len(self.graph[u]) for u in self.graph])
 
     def create_node_weights_matrix(self):
         """Create node weight matrix."""
@@ -92,59 +103,18 @@ class SimplicialComplex:
         if self.faces == None:
             self.edge_incidence_matrix = None
         else:
-            # Edge incidence matrix
-            A = nx.to_numpy_matrix(self.graph)
-            Nn = A.shape[0]
-            Ne = int(np.sum(A) / 2)
-
-            e = np.zeros((Ne, 2))
-            count = 0
-            for i in range(Nn):
-                for j in range(i + 1, Nn):
-                    if A[i, j] > 0:
-                        e[count, 0] = i
-                        e[count, 1] = j
-                        count += 1
-            # print("edges")
-            # print(e)
-
-            Nf = 0
-            for i in range(Nn):
-                for j in range(i + 1, Nn):
-                    for k in range(j + 1, Nn):
-                        subA = A[np.ix_([i, j, k], [i, j, k])]
-                        if np.sum(subA) == 6:
-                            Nf += 1
-            f = np.zeros((Nf, 3))
-            count = 0
-            for i in range(Nn):
-                for j in range(i + 1, Nn):
-                    for k in range(j + 1, Nn):
-                        subA = A[np.ix_([i, j, k], [i, j, k])]
-                        if np.sum(subA) == 6:
-                            f[count, 0] = i
-                            f[count, 1] = j
-                            f[count, 2] = k
-                            count += 1
-            # print("faces")
-            # print(f)
-            II = np.zeros((Nf, Ne))
-            for i in range(f.shape[0]):
+            self.edge_incidence_matrix = sc.sparse.lil_matrix(
+                (len(self.faces), self.n_edges)
+            )
+            for face_index, face in enumerate(self.faces):
                 for j in [0, -1, -2]:
-                    temp = np.roll(f[i, :], j)
+                    temp = np.roll(face, j)
                     temp = temp[0:2]
-                    for k in range(e.shape[0]):
-                        # print e[k,:],temp
-                        if ((e[k, :] == temp).all()) or (
-                            (e[k, :] == np.roll(temp, 1)).all()
-                        ):
-                            Irow = k
-                    if temp[0] < temp[1]:
-                        II[i, Irow] = 1
-                    else:
-                        II[i, Irow] = -1
-            # print II
-            #        ntrie=np.sum(II,1)
-            self.edge_incidence_matrix = II
+                    for edge_index, edge in enumerate(self.edgelist):
+                        if all(edge == temp) or all(edge == np.roll(temp, 1)):
+                            index_row = edge_index
 
-        #        return I,II#,ntrie, e#, len(ntrie)
+                    if temp[0] < temp[1]:
+                        self.edge_incidence_matrix[face_index, index_row] = 1
+                    else:
+                        self.edge_incidence_matrix[face_index, index_row] = -1

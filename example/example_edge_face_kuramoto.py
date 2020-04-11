@@ -5,9 +5,9 @@ import numpy as np
 from simplicial_kuramoto import (SimplicialComplex, integrate_edge_kuramoto,
                                  plotting)
 
-graph = nx.cycle_graph(4)
+graph = nx.cycle_graph(3)
 
-complex_test = SimplicialComplex(graph=graph, no_faces=True)
+complex_test = SimplicialComplex(graph=graph)
 
 B0 = complex_test.node_incidence_matrix
 
