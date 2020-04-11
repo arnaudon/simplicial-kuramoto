@@ -104,17 +104,17 @@ class SimplicialComplex:
             self.edge_incidence_matrix = None
         else:
             self.edge_incidence_matrix = sc.sparse.lil_matrix(
-                (len(self.faces), self.n_edges)
+                (self.n_faces, self.n_edges)
             )
             for face_index, face in enumerate(self.faces):
-                for j in [0, -1, -2]:
-                    temp = np.roll(face, j)
-                    temp = temp[0:2]
-                    for edge_index, edge in enumerate(self.edgelist):
-                        if all(edge == temp) or all(edge == np.roll(temp, 1)):
-                            index_row = edge_index
-
-                    if temp[0] < temp[1]:
-                        self.edge_incidence_matrix[face_index, index_row] = 1
+                for i in range(3):
+                    edge = tuple(np.roll(face, i)[:2])
+                    edge_rev = tuple(np.roll(face, i)[1::-1])
+                    if edge in self.edgelist:
+                        edge_index = self.edgelist.index(edge)
+                        self.edge_incidence_matrix[face_index, edge_index] = 1.0
+                    elif edge_rev in self.edgelist:
+                        edge_index = self.edgelist.index(edge_rev)
+                        self.edge_incidence_matrix[face_index, edge_index] = -1.0
                     else:
-                        self.edge_incidence_matrix[face_index, index_row] = -1
+                        raise Exception("The face is not a triangle in the graph")
