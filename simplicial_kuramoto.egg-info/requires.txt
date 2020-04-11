@@ -1,6 +1,0 @@
-numpy>=1.15.0
-scipy>=0.13.3
-h5py>=2.9.0
-morphio>=2.3.4
-matplotlib>=2.2.0
-pandas>=0.24.0

@@ -45,93 +45,98 @@ class SimplicialComplex:
 
     def create_node_incidence_matrix_alt(self):
         """ Create node incidence matrix in lexicographic order. """
-        
-        A=nx.to_numpy_matrix(self.graph)
-        Nn=A.shape[0]
-        Ne=int(np.sum(A)/2)
-        #print Nn, Ne
+
+        A = nx.to_numpy_matrix(self.graph)
+        Nn = A.shape[0]
+        Ne = int(np.sum(A) / 2)
+        # print Nn, Ne
 
         # this part creates a signed node incidence matrix, in lexicographic order. Not sure it is redundant with the one above,
         # the orientaiton initially chosen for the node incidence matrix implies the orientation on the edge indicence matrix
-        e=np.zeros((Ne,2))
-        count=0;
+        e = np.zeros((Ne, 2))
+        count = 0
         for i in range(Nn):
-            for j in range(i+1,Nn):
-                if(A[i,j]>0):
-                    e[count,0]=i
-                    e[count,1]=j
-                    count+=1
-        #print("edges")
-        #print(e)
-        I=np.zeros((Ne,Nn))
+            for j in range(i + 1, Nn):
+                if A[i, j] > 0:
+                    e[count, 0] = i
+                    e[count, 1] = j
+                    count += 1
+        # print("edges")
+        # print(e)
+        I = np.zeros((Ne, Nn))
         for i in range(Ne):
-            I[i,int(e[i,0])]=1
-            I[i,int(e[i,1])]=-1
-        #print I
-        self.node_incidence_matrix_alt=I
-        
+            I[i, int(e[i, 0])] = 1
+            I[i, int(e[i, 1])] = -1
+        # print I
+        self.node_incidence_matrix_alt = I
+
     def create_edge_incidence_matrix(self):
         """Create edge incidence matrix."""
-        #if self.faces is not None:
+        # if self.faces is not None:
         #    raise Exception("Not working yet!")
-            # self.edge_incidence_matrix = nx.incidence_matrix(self.graph, oriented = True).T
-        #else:
-            #self.edge_incidence_matrix = None
-        
-        # Edge incidence matrix
-        A=nx.to_numpy_matrix(self.graph)
-        Nn=A.shape[0]
-        Ne=int(np.sum(A)/2)
-        
-        e=np.zeros((Ne,2))
-        count=0;
-        for i in range(Nn):
-            for j in range(i+1,Nn):
-                if(A[i,j]>0):
-                    e[count,0]=i
-                    e[count,1]=j
-                    count+=1
-        #print("edges")
-        #print(e)
-            
-        Nf=0
-        for i in range(Nn):
-            for j in range(i+1,Nn):
-                for k in range(j+1,Nn):
-                    subA=A[np.ix_([i,j,k],[i,j,k])]
-                    if(np.sum(subA)==6):
-                        Nf+=1
-        f=np.zeros((Nf,3))
-        count=0
-        for i in range(Nn):
-            for j in range(i+1,Nn):
-                for k in range(j+1,Nn):
-                    subA=A[np.ix_([i,j,k],[i,j,k])]
-                    if(np.sum(subA)==6):
-                        f[count,0]=i
-                        f[count,1]=j
-                        f[count,2]=k
-                        count+=1
-        #print("faces")
-        #print(f)
-        II=np.zeros((Nf,Ne))
-        for i in range(f.shape[0]):
-            for j in [0,-1,-2]:
-                temp=np.roll(f[i,:],j)
-                temp=temp[0:2]
-                for k in range(e.shape[0]):
-                    #print e[k,:],temp
-                    if(((e[k,:]==temp).all())or((e[k,:]==np.roll(temp,1)).all())):
-                        Irow=k
-                if(temp[0]<temp[1]):
-                    II[i,Irow]=1
-                else:
-                    II[i,Irow]=-1
-        #print II 
-#        ntrie=np.sum(II,1)
-        self.edge_incidence_matrix=II
-#        return I,II#,ntrie, e#, len(ntrie)
+        # self.edge_incidence_matrix = nx.incidence_matrix(self.graph, oriented = True).T
+        # else:
+        # self.edge_incidence_matrix = None
 
-    def flip_edge_orientation(self, edge_index): #need to follow the consequence of the change down to faces
+        # Edge incidence matrix
+        A = nx.to_numpy_matrix(self.graph)
+        Nn = A.shape[0]
+        Ne = int(np.sum(A) / 2)
+
+        e = np.zeros((Ne, 2))
+        count = 0
+        for i in range(Nn):
+            for j in range(i + 1, Nn):
+                if A[i, j] > 0:
+                    e[count, 0] = i
+                    e[count, 1] = j
+                    count += 1
+        # print("edges")
+        # print(e)
+
+        Nf = 0
+        for i in range(Nn):
+            for j in range(i + 1, Nn):
+                for k in range(j + 1, Nn):
+                    subA = A[np.ix_([i, j, k], [i, j, k])]
+                    if np.sum(subA) == 6:
+                        Nf += 1
+        f = np.zeros((Nf, 3))
+        count = 0
+        for i in range(Nn):
+            for j in range(i + 1, Nn):
+                for k in range(j + 1, Nn):
+                    subA = A[np.ix_([i, j, k], [i, j, k])]
+                    if np.sum(subA) == 6:
+                        f[count, 0] = i
+                        f[count, 1] = j
+                        f[count, 2] = k
+                        count += 1
+        # print("faces")
+        # print(f)
+        II = np.zeros((Nf, Ne))
+        for i in range(f.shape[0]):
+            for j in [0, -1, -2]:
+                temp = np.roll(f[i, :], j)
+                temp = temp[0:2]
+                for k in range(e.shape[0]):
+                    # print e[k,:],temp
+                    if ((e[k, :] == temp).all()) or (
+                        (e[k, :] == np.roll(temp, 1)).all()
+                    ):
+                        Irow = k
+                if temp[0] < temp[1]:
+                    II[i, Irow] = 1
+                else:
+                    II[i, Irow] = -1
+        # print II
+        #        ntrie=np.sum(II,1)
+        self.edge_incidence_matrix = II
+
+    #        return I,II#,ntrie, e#, len(ntrie)
+
+    def flip_edge_orientation(
+        self, edge_index
+    ):  # need to follow the consequence of the change down to faces
         """Flip the orientation of an edge."""
         self.node_incidence_matrix[edge_index] *= -1
