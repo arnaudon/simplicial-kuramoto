@@ -1,7 +1,9 @@
 """Plotting functions."""
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.sparse.linalg import eigs
 from scipy.linalg import null_space
+
 
 # from utils import *
 
@@ -63,8 +65,14 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
         "L1\theta: ",
         np.mod(np.around(L1.dot(phase[:, -1]), 10), np.around(2 * np.pi, 10)),
     )
-    print("dim(Ker(L1)): ", null_space(L1).shape[1])
-    print("Ker(L1): ", null_space(L1))
+    
+    #w, v=eigs(L1)
+    #ns_ind=np.where(w<10e-8)
+    #print("dim(Ker(L1)): ", len(ns_ind)
+    
+    ns=null_space(L1.toarray()) # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
+    print("dim(Ker(L1)): ", ns.shape[1])
+    print("Ker(L1): ", ns)
 
 
 #     plt.figure()
