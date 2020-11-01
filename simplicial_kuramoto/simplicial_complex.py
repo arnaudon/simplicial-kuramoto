@@ -32,6 +32,7 @@ class SimplicialComplex:
         """Set faces from list of triangles if provided, or all triangles."""
         if no_faces:
             self.faces = None
+            self.n_faces = 0
         elif faces == None:
             all_cliques = nx.enumerate_all_cliques(self.graph)
             self.faces = [clique for clique in all_cliques if len(clique) == 3]
@@ -40,7 +41,7 @@ class SimplicialComplex:
             self.faces = faces
             self.n_faces = len(self.faces)
 
-        print(self.faces)
+        print(f'We created {self.n_faces} faces')
 
     def set_lexicographic(self):
         """Set orientation of edges in lexicographic order."""
