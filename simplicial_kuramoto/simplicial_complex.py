@@ -12,7 +12,7 @@ class SimplicialComplex:
 
         Args: 
             graph (networkx): original graph to consider
-            faces (?): information on which faces we have
+            faces (list): list of faces, each element is a list of ordered 3 nodes
         """
         if graph is None:
             raise Exception("Please provide at least a graph")
@@ -39,6 +39,8 @@ class SimplicialComplex:
         else:
             self.faces = faces
             self.n_faces = len(self.faces)
+
+        print(self.faces)
 
     def set_lexicographic(self):
         """Set orientation of edges in lexicographic order."""

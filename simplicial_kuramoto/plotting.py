@@ -42,17 +42,18 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
 
     B0 = simplicial_complex.node_incidence_matrix
     B1 = simplicial_complex.edge_incidence_matrix
-    
+
     # op=order_parameter(phase, 4, 1) # that is in the utils.py
     # plt.figure()
     # plt.title('Order parameter')
     # plt.plot(op[0,:])
 
-    if(B1==None):
+    if B1 == None:
         print("theta_0: ", initial_phase)
         print("theta_final: ", phase[:, -1])
         print(
-            "theta_final: ", np.mod(np.around(phase[:, -1], 10), np.around(2 * np.pi, 10))
+            "theta_final: ",
+            np.mod(np.around(phase[:, -1], 10), np.around(2 * np.pi, 10)),
         )
 
         Div = np.mod(np.around(B0.T.dot(phase), 10), np.around(2 * np.pi, 10))
@@ -66,20 +67,23 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
             np.mod(np.around(L1.dot(phase[:, -1]), 10), np.around(2 * np.pi, 10)),
         )
 
-        #w, v=eigs(L1)
-        #ns_ind=np.where(w<10e-8)
-        #print("dim(Ker(L1)): ", len(ns_ind)
+        # w, v=eigs(L1)
+        # ns_ind=np.where(w<10e-8)
+        # print("dim(Ker(L1)): ", len(ns_ind)
 
-        ns=null_space(L1.toarray()) # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
+        ns = null_space(
+            L1.toarray()
+        )  # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
         print("dim(Ker(L1)): ", ns.shape[1])
         print("Ker(L1): ", ns)
     else:
         print("theta_0: ", initial_phase)
         print("theta_final: ", phase[:, -1])
         print(
-            "theta_final: ", np.mod(np.around(phase[:, -1], 10), np.around(2 * np.pi, 10))
+            "theta_final: ",
+            np.mod(np.around(phase[:, -1], 10), np.around(2 * np.pi, 10)),
         )
-        
+
         Div = np.mod(np.around(B0.T.dot(phase), 10), np.around(2 * np.pi, 10))
         Curl = np.mod(np.around(B1.dot(phase), 10), np.around(2 * np.pi, 10))
         print("Div: ", Div[:, -1])
@@ -92,13 +96,16 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
             np.mod(np.around(L1.dot(phase[:, -1]), 10), np.around(2 * np.pi, 10)),
         )
 
-        #w, v=eigs(L1)
-        #ns_ind=np.where(w<10e-8)
-        #print("dim(Ker(L1)): ", len(ns_ind)
+        # w, v=eigs(L1)
+        # ns_ind=np.where(w<10e-8)
+        # print("dim(Ker(L1)): ", len(ns_ind)
 
-        ns=null_space(L1.toarray()) # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
+        ns = null_space(
+            L1.toarray()
+        )  # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
         print("dim(Ker(L1)): ", ns.shape[1])
         print("Ker(L1): ", ns)
+
 
 #     plt.figure()
 #     plt.imshow(Div, aspect='auto',cmap='bwr')
@@ -109,23 +116,25 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
 #     plt.title(plotname+' curl')
 #     plt.colorbar()
 
-def plot_order_parameter(phases,return_op=False,plot=True):
-    N=phases.shape[0]
+
+def plot_order_parameter(phases, return_op=False, plot=True):
+    N = phases.shape[0]
     op = np.zeros((phases.shape[1]))
-    op = np.absolute(np.exp(1j*phases).sum(0))/N
-    if(plot):
+    op = np.absolute(np.exp(1j * phases).sum(0)) / N
+    if plot:
         plt.figure()
         plt.plot(op)
         plt.title(op[-1])
         plt.show()
-    if(return_op):
+    if return_op:
         return op
 
+
 def plot_unit_circle(phases):
-    t=np.linspace(0,2*np.pi,1000)
+    t = np.linspace(0, 2 * np.pi, 1000)
     plt.figure()
-    plt.plot(np.cos(t), np.sin(t),'b', linewidth=1)
-    plt.plot([0,0],[-1,1],'b-.', linewidth=0.5)
-    plt.plot([-1,1],[0,0],'b-.', linewidth=0.5)
-    plt.plot(np.cos(phases[:,-1]),np.sin(phases[:,-1]),'o')
+    plt.plot(np.cos(t), np.sin(t), "b", linewidth=1)
+    plt.plot([0, 0], [-1, 1], "b-.", linewidth=0.5)
+    plt.plot([-1, 1], [0, 0], "b-.", linewidth=0.5)
+    plt.plot(np.cos(phases[:, -1]), np.sin(phases[:, -1]), "o")
     plt.show()

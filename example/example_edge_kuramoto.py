@@ -2,14 +2,11 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from simplicial_kuramoto import (SimplicialComplex, integrate_edge_kuramoto,
-                                 plotting)
+from simplicial_kuramoto import SimplicialComplex, integrate_edge_kuramoto, plotting
 
 graph = nx.cycle_graph(4)
 
 complex_test = SimplicialComplex(graph=graph, no_faces=True)
-
-B0 = complex_test.node_incidence_matrix
 
 initial_phase = np.random.uniform(0, 2 * np.pi, len(graph.edges))
 initial_phase = np.zeros(len(graph.edges))
