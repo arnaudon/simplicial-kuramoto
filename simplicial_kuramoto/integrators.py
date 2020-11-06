@@ -25,7 +25,7 @@ def integrate_node_kuramoto(
         node_simplicial_kuramoto, simplicial_complex=simplicial_complex, omega_0=omega_0
     )
     t_eval = np.linspace(0, t_max, n_t)
-    return solve_ivp(
+    opt = solve_ivp(
         rhs,
         [0, t_max],
         initial_phase,
@@ -33,7 +33,12 @@ def integrate_node_kuramoto(
         method="Radau",
         rtol=1.0e-8,
         atol=1.0e-8,
-    )
+    )    
+    
+    opt.y[opt.y<0] += 2*np.pi
+    opt.y[opt.y>2*np.pi] -= 2*np.pi
+    
+    return opt
 
 
 def edge_simplicial_kuramoto(time, phase, simplicial_complex=None, omega_0=None):
@@ -62,7 +67,7 @@ def integrate_edge_kuramoto(
         edge_simplicial_kuramoto, simplicial_complex=simplicial_complex, omega_0=omega_0
     )
     t_eval = np.linspace(0, t_max, n_t)
-    return solve_ivp(
+    opt =  solve_ivp(
         rhs,
         [0, t_max],
         initial_phase,
@@ -71,3 +76,7 @@ def integrate_edge_kuramoto(
         rtol=1.0e-8,
         atol=1.0e-8,
     )
+    opt.y[opt.y<0] += 2*np.pi
+    opt.y[opt.y>2*np.pi] -= 2*np.pi
+    
+    return opt

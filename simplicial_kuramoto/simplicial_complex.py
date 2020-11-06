@@ -7,7 +7,7 @@ import scipy as sc
 class SimplicialComplex:
     """Class representing a simplicial complex."""
 
-    def __init__(self, graph=None, faces=None, no_faces=False):
+    def __init__(self, graph=None, faces=None, no_faces=False, verbose=True):
         """Initialise the class.
 
         Args: 
@@ -24,11 +24,11 @@ class SimplicialComplex:
 
         self.set_lexicographic()
 
-        self.set_faces(faces, no_faces=no_faces)
+        self.set_faces(faces, no_faces=no_faces, verbose=verbose)
 
         self.create_matrices()
 
-    def set_faces(self, faces=None, no_faces=False):
+    def set_faces(self, faces=None, no_faces=False, verbose=True):
         """Set faces from list of triangles if provided, or all triangles."""
         if no_faces:
             self.faces = None
@@ -40,8 +40,9 @@ class SimplicialComplex:
         else:
             self.faces = faces
             self.n_faces = len(self.faces)
-
-        print(f'We created {self.n_faces} faces')
+            
+        if verbose:
+            print(f'We created {self.n_faces} faces')
 
     def set_lexicographic(self):
         """Set orientation of edges in lexicographic order."""

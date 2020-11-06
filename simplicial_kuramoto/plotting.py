@@ -14,11 +14,12 @@ def plot_node_kuramoto(node_results):
     plt.imshow(
         node_results.y,
         aspect="auto",
-        cmap="bwr",
+        cmap="twilight_shifted",
         extent=(node_results.t[0], node_results.t[-1], 0, len(node_results.y)),
     )
     plt.xlabel("time")
     plt.ylabel("mode id")
+    plt.colorbar()
 
 
 def plot_edge_kuramoto(edge_results):
@@ -28,7 +29,7 @@ def plot_edge_kuramoto(edge_results):
         # np.mod(np.around(edge_results.y, 10), np.around(2 * np.pi, 10)),
         edge_results.y,
         aspect="auto",
-        cmap="bwr",
+        cmap="twilight_shifted",
         interpolation='nearest',
         extent=(edge_results.t[0], edge_results.t[-1], 0, len(edge_results.y)),
     )
