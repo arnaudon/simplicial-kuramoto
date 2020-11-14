@@ -122,3 +122,34 @@ class SimplicialComplex:
                         self.edge_incidence_matrix[face_index, edge_index] = -1.0
                     else:
                         raise Exception("The face is not a triangle in the graph")
+
+    @property
+    def node_laplacian(self):
+        """Compute the node laplacian."""
+        B0 = self.node_incidence_matrix
+        W0 = self.node_weights_matrix
+        W1 = self.edge_weights_matrix
+        W1_inv = W1.copy()
+        W1_inv.data = 1./ W1_inv.data
+        return W0.dot(B0.T).dot(W1_inv).dot(B0)
+
+
+    @property
+    def edge_laplacian(self):
+        """Compute the edge laplacian."""
+        B0 = self.node_incidence_matrix
+        W0 = self.node_weights_matrix
+        B1 = self.edge_incidence_matrix
+        W1 = self.edge_weights_matrix
+        W2 = self.face_weights_matrix
+
+        W1_inv = W1.copy()
+        W1_inv.data = 1./ W1_inv.data
+        L1 = B0.dot(W0).dot(B0.T).dot(W1_inv)
+
+        if W2 is not None:
+            W2_inv = W2.copy()
+            W2_inv.data = 1./ W2_inv.data
+            L1 += W1.dot(B1.T).dot(W2_inv).dot(B1)
+
+        return L1

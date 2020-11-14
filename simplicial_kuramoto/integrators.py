@@ -14,7 +14,9 @@ def node_simplicial_kuramoto(time, phase, simplicial_complex=None, omega_0=None)
     if omega_0 is None:
         omega_0 = np.zeros(simplicial_complex.n_nodes)
 
-    return omega_0 - W0.dot(B0.T.dot(W1).dot(np.sin(B0.dot(phase))))
+    W1_inv = W1.copy()
+    W1_inv.data = 1./ W1_inv.data
+    return omega_0 - W0.dot(B0.T).dot(np.sin(W1_inv.dot(B0).dot(phase)))
 
 
 def integrate_node_kuramoto(
@@ -52,10 +54,15 @@ def edge_simplicial_kuramoto(time, phase, simplicial_complex=None, omega_0=None)
     if omega_0 is None:
         omega_0 = np.zeros(simplicial_complex.n_edges)
 
-    rhs = omega_0 - W1.dot(B0.dot(W0.dot(np.sin(B0.T.dot(phase)))))
+    W1_inv = W1.copy()
+    W1_inv.data = 1./ W1_inv.data
+    rhs = B0.dot(W0).dot(np.sin(B0.T.dot(W1_inv).dot(phase)))
+
     if W2 is not None:
-        rhs -= W1.dot(B1.T.dot(W2.dot(np.sin(B1.dot(phase)))))
-    return rhs
+        W2_inv = W2.copy()
+        W2_inv.data = 1./ W2_inv.data
+        rhs += W1.dot(B1.T).dot(np.sin(W2_inv.dot(B1).dot(phase)))
+    return omega_0 - rhs
 
 
 def integrate_edge_kuramoto(

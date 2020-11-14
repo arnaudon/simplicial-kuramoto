@@ -26,8 +26,8 @@ def plot_edge_kuramoto(edge_results):
     """Basic plot for edge kuramoto."""
     plt.figure()
     plt.imshow(
-        # np.mod(np.around(edge_results.y, 10), np.around(2 * np.pi, 10)),
-        edge_results.y,
+        np.round(edge_results.y + np.pi, 2) %  (2 * np.pi) - np.pi,
+        #edge_results.y,
         aspect="auto",
         cmap="twilight_shifted",
         interpolation='nearest',
