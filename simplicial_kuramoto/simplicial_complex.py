@@ -122,7 +122,51 @@ class SimplicialComplex:
                         self.edge_incidence_matrix[face_index, edge_index] = -1.0
                     else:
                         raise Exception("The face is not a triangle in the graph")
+    
+    def remove_zero_weight_edges_faces(self, return_idx=False):
+        B0 = self.node_incidence_matrix.toarray()
+        W0 = self.node_weights_matrix.toarray()
+        B1 = self.edge_incidence_matrix.toarray()
+        W1 = self.edge_weights_matrix.toarray()
+        W2 = self.face_weights_matrix.toarray()
 
+        zero_weight_edges = W1.any(axis=1)
+        zero_weight_faces = W2.any(axis=1)
+        
+        # remove edges from node incidence matrix
+        B0 = np.delete(B0,np.where(~zero_weight_edges),axis=0)
+        
+        # remove edges from edge weight matrix
+        W1 = np.delete(W1,np.where(~zero_weight_edges),axis=0)
+        W1 = np.delete(W1,np.where(~zero_weight_edges),axis=1)
+        
+        # remove faces from edge incidence matrix
+        B1 = np.delete(B1 ,np.where(~zero_weight_faces),axis=0)
+        B1 = np.delete(B1 ,np.where(~zero_weight_edges),axis=1)
+        
+        # remove edges from edge weight matrix
+        W2 = np.delete(W2,np.where(~zero_weight_faces),axis=0)
+        W2 = np.delete(W2,np.where(~zero_weight_faces),axis=1)
+        
+        self.node_incidence_matrix = sc.sparse.lil_matrix(B0)
+        self.node_weights_matrix = sc.sparse.lil_matrix(W0)
+        self.edge_incidence_matrix = sc.sparse.lil_matrix(B1)
+        self.edge_weights_matrix = sc.sparse.spdiags(np.diagonal(W1),0, W1.shape[0], W1.shape[0])
+        self.face_weights_matrix = sc.sparse.spdiags(np.diagonal(W2),0, W2.shape[0], W2.shape[0])        
+                
+        self.n_edges = W1.shape[0]
+        self.n_faces = W2.shape[0]        
+        
+        self.graph = nx.Graph(self.graph)
+        
+        # remove edges from nx graph
+        for edge_id in np.where(~zero_weight_edges)[0]:
+            edge = self.edgelist[edge_id]    
+            self.graph.remove_edge(edge[0],edge[1])
+       
+        
+        return zero_weight_edges, zero_weight_faces
+        
     @property
     def node_laplacian(self):
         """Compute the node laplacian."""
