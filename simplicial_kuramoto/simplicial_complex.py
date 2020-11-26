@@ -22,8 +22,8 @@ class SimplicialComplex:
         self.n_edges = len(self.graph.edges)
         self.edgelist = list(self.graph.edges)
 
+        self._B0 = None
         self._B1 = None
-        self._B2 = None
         self._W0 = None
         self._W1 = None
         self._W2 = None
@@ -31,8 +31,8 @@ class SimplicialComplex:
         self._L1 = None
 
         self._V = None
+        self._lifted_B0 = None
         self._lifted_B1 = None
-        self._lifted_B2 = None
         self._lifted_L0 = None
         self._lifted_L1 = None
 
@@ -66,7 +66,7 @@ class SimplicialComplex:
             edge_indices = [edge_indices]
         for edge_index in edge_indices:
             self.edgelist[edge_index] = self.edgelist[edge_index][::-1]
-        self._B1 = None
+        self._B0 = None
         self._edge_incidence_matrix = None
 
     @property
@@ -103,33 +103,33 @@ class SimplicialComplex:
         return self._W2
 
     @property
-    def B1(self):
+    def B0(self):
         """Create node incidence matrix."""
-        if self._B1 is None:
-            self._B1 = nx.incidence_matrix(
+        if self._B0 is None:
+            self._B0 = nx.incidence_matrix(
                 self.graph, edgelist=self.edgelist, oriented=True
             ).T
-        return self._B1
+        return self._B0
 
     @property
-    def B2(self):
+    def B1(self):
         """Create edge incidence matrix."""
-        if self._B2 is None:
+        if self._B1 is None:
             if self.faces is not None:
-                self._B2 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
+                self._B1 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
                 for face_index, face in enumerate(self.faces):
                     for i in range(3):
                         edge = tuple(np.roll(face, i)[:2])
                         edge_rev = tuple(np.roll(face, i)[1::-1])
                         if edge in self.edgelist:
                             edge_index = self.edgelist.index(edge)
-                            self._B2[face_index, edge_index] = 1.0
+                            self._B1[face_index, edge_index] = 1.0
                         elif edge_rev in self.edgelist:
                             edge_index = self.edgelist.index(edge_rev)
-                            self._B2[face_index, edge_index] = -1.0
+                            self._B1[face_index, edge_index] = -1.0
                         else:
                             raise Exception("The face is not a triangle in the graph")
-        return self._B2
+        return self._B1
 
     @property
     def L0(self):
@@ -137,7 +137,7 @@ class SimplicialComplex:
         if self._L0 is None:
             W1_inv = self.W1.copy()
             W1_inv.data = 1.0 / W1_inv.data
-            self._L0 = self.W0.dot(self.B1.T).dot(W1_inv).dot(self.B1)
+            self._L0 = self.W0.dot(self.B0.T).dot(W1_inv).dot(self.B0)
         return self._L0
 
     @property
@@ -146,12 +146,12 @@ class SimplicialComplex:
         if self._L1 is None:
             W1_inv = self.W1.copy()
             W1_inv.data = 1.0 / W1_inv.data
-            self._L1 = self.B1.dot(self.W0).dot(self.B1.T).dot(W1_inv)
+            self._L1 = self.B0.dot(self.W0).dot(self.B0.T).dot(W1_inv)
 
             if self.W2 is not None:
                 W2_inv = self.W2.copy()
                 W2_inv.data = 1.0 / W2_inv.data
-                self._L1 += self.W1.dot(self.B2.T).dot(W2_inv).dot(self.B2)
+                self._L1 += self.W1.dot(self.B1.T).dot(W2_inv).dot(self.B1)
         return self._L1
 
     @property
@@ -163,45 +163,45 @@ class SimplicialComplex:
         return self._V
 
     @property
+    def lifted_B0(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_B0 is None:
+            self._liftted_B0 = self.V.dot(self.B0)
+        return self._liftted_B0
+
+    @property
     def lifted_B1(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_B1 is None:
-            self._liftted_B1 = self.V.dot(self.B1)
+            self._liftted_B1 = self.B1.dot(self.V.T)
         return self._liftted_B1
-
-    @property
-    def lifted_B2(self):
-        """Create lifted version of incidence matrices."""
-        if self._lifted_B2 is None:
-            self._liftted_B2 = self.B2.dot(self.V.T)
-        return self._liftted_B2
 
     @property
     def lifted_L0(self):
         """Get lifted node laplacian."""
         if self._lifted_L0 is None:
-            lifted_B1_pos = self.lifted_B1.copy()
-            lifted_B1_pos[lifted_B1_pos < 0] = 0
-            self._lifted_L0 = lifted_B1_pos.T.dot(self.lifted_B1)
+            lifted_B0_pos = self.lifted_B0.copy()
+            lifted_B0_pos[lifted_B0_pos < 0] = 0
+            self._lifted_L0 = lifted_B0_pos.T.dot(self.lifted_B0)
         return self._lifted_L0
 
     @property
     def lifted_L1(self):
         """Get lifted edge laplacian."""
         if self._lifted_L1 is None:
-            lifted_B1_pos = self.lifted_B1.copy()
-            lifted_B1_pos[lifted_B1_pos < 0] = 0
-            self._lifted_L1 = self.lifted_B1.dot(lifted_B1_pos.T)
+            lifted_B0_pos = self.lifted_B0.copy()
+            lifted_B0_pos[lifted_B0_pos < 0] = 0
+            self._lifted_L1 = self.lifted_B0.dot(lifted_B0_pos.T)
             print(self.W2)
             if self.W2 is not None:
-                lifted_B2_pos = self.lifted_B2.copy()
-                lifted_B2_pos[lifted_B2_pos < 0] = 0
-                self._lifted_L1 += lifted_B2_pos.T.dot(self.lifted_B2)
+                lifted_B1_pos = self.lifted_B1.copy()
+                lifted_B1_pos[lifted_B1_pos < 0] = 0
+                self._lifted_L1 += lifted_B1_pos.T.dot(self.lifted_B1)
         return self._lifted_L1
 
     def remove_zero_weight_edges_faces(self, return_idx=False):
         """This iis broken!"""
-        B0 = self.B1.toarray()
+        B0 = self.B0.toarray()
         W0 = self.node_weights_matrix.toarray()
         B1 = self.edge_incidence_matrix.toarray()
         W1 = self.edge_weights_matrix.toarray()
