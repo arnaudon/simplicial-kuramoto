@@ -10,7 +10,7 @@ class SimplicialComplex:
     def __init__(self, graph=None, faces=None, no_faces=False, verbose=True):
         """Initialise the class.
 
-        Args: 
+        Args:
             graph (networkx): original graph to consider
             faces (list): list of faces, each element is a list of ordered 3 nodes
         """
@@ -22,11 +22,22 @@ class SimplicialComplex:
         self.n_edges = len(self.graph.edges)
         self.edgelist = list(self.graph.edges)
 
+        self._B1 = None
+        self._B2 = None
+        self._W0 = None
+        self._W1 = None
+        self._W2 = None
+        self._L0 = None
+        self._L1 = None
+
+        self._V = None
+        self._lifted_B1 = None
+        self._lifted_B2 = None
+        self._lifted_L0 = None
+        self._lifted_L1 = None
+
         self.set_lexicographic()
-
         self.set_faces(faces, no_faces=no_faces, verbose=verbose)
-
-        self.create_matrices()
 
     def set_faces(self, faces=None, no_faces=False, verbose=True):
         """Set faces from list of triangles if provided, or all triangles."""
@@ -40,9 +51,9 @@ class SimplicialComplex:
         else:
             self.faces = faces
             self.n_faces = len(self.faces)
-            
+
         if verbose:
-            print(f'We created {self.n_faces} faces')
+            print(f"We created {self.n_faces} faces")
 
     def set_lexicographic(self):
         """Set orientation of edges in lexicographic order."""
@@ -55,76 +66,142 @@ class SimplicialComplex:
             edge_indices = [edge_indices]
         for edge_index in edge_indices:
             self.edgelist[edge_index] = self.edgelist[edge_index][::-1]
-        self.create_matrices()
+        self._B1 = None
+        self._edge_incidence_matrix = None
 
-    def create_matrices(self):
-        """Create all needed weights and incidence matrices."""
-        self.create_node_incidence_matrix()
-        self.create_edge_incidence_matrix()
-
-        self.create_node_weights_matrix()
-        self.create_edge_weights_matrix()
-        self.create_face_weights_matrix()
-
-    def create_node_weights_matrix(self):
+    @property
+    def W0(self):
         """Create node weight matrix."""
-        try:
-            node_weights = [self.graph.nodes[u]["weight"] for u in self.graph]
-        except:
-            node_weights = np.ones(self.n_nodes)
-        self.node_weights_matrix = sc.sparse.spdiags(
-            node_weights, 0, self.n_nodes, self.n_nodes
-        )
+        if self._W0 is None:
+            try:
+                node_weights = [self.graph.nodes[u]["weight"] for u in self.graph]
+            except:
+                node_weights = np.ones(self.n_nodes)
+            self._W0 = sc.sparse.spdiags(node_weights, 0, self.n_nodes, self.n_nodes)
+        return self._W0
 
-    def create_edge_weights_matrix(self):
+    @property
+    def W1(self):
         """Create edge weight matrix."""
-        try:
-            edge_weights = [self.graph[u][v]["weight"] for u, v in self.graph.edges]
-        except:
-            edge_weights = np.ones(self.n_edges)
-        self.edge_weights_matrix = sc.sparse.spdiags(
-            edge_weights, 0, self.n_edges, self.n_edges
-        )
+        if self._W1 is None:
+            try:
+                edge_weights = [self.graph[u][v]["weight"] for u, v in self.graph.edges]
+            except:
+                edge_weights = np.ones(self.n_edges)
+            self._W1 = sc.sparse.spdiags(edge_weights, 0, self.n_edges, self.n_edges)
+        return self._W1
 
-    def create_face_weights_matrix(self):
+    @property
+    def W2(self):
         """Create face weight matrix."""
-        if self.faces is None:
-            self.face_weights_matrix = None
-        else:
-            face_weights = np.ones(self.n_faces)
-            self.face_weights_matrix = sc.sparse.spdiags(
-                face_weights, 0, self.n_faces, self.n_faces
-            )
+        if self._W2 is None:
+            if self.faces is not None:
+                face_weights = np.ones(self.n_faces)
+                self._W2 = sc.sparse.spdiags(
+                    face_weights, 0, self.n_faces, self.n_faces
+                )
+        return self._W2
 
-    def create_node_incidence_matrix(self):
+    @property
+    def B1(self):
         """Create node incidence matrix."""
-        self.node_incidence_matrix = nx.incidence_matrix(
-            self.graph, edgelist=self.edgelist, oriented=True
-        ).T
+        if self._B1 is None:
+            self._B1 = nx.incidence_matrix(
+                self.graph, edgelist=self.edgelist, oriented=True
+            ).T
+        return self._B1
 
-    def create_edge_incidence_matrix(self):
+    @property
+    def B2(self):
         """Create edge incidence matrix."""
-        if self.faces == None:
-            self.edge_incidence_matrix = None
-        else:
-            self.edge_incidence_matrix = sc.sparse.lil_matrix(
-                (self.n_faces, self.n_edges)
+        if self._B2 is None:
+            if self.faces is not None:
+                self._B2 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
+                for face_index, face in enumerate(self.faces):
+                    for i in range(3):
+                        edge = tuple(np.roll(face, i)[:2])
+                        edge_rev = tuple(np.roll(face, i)[1::-1])
+                        if edge in self.edgelist:
+                            edge_index = self.edgelist.index(edge)
+                            self._B2[face_index, edge_index] = 1.0
+                        elif edge_rev in self.edgelist:
+                            edge_index = self.edgelist.index(edge_rev)
+                            self._B2[face_index, edge_index] = -1.0
+                        else:
+                            raise Exception("The face is not a triangle in the graph")
+        return self._B2
+
+    @property
+    def L0(self):
+        """Compute the node laplacian."""
+        if self._L0 is None:
+            W1_inv = self.W1.copy()
+            W1_inv.data = 1.0 / W1_inv.data
+            self._L0 = self.W0.dot(self.B1.T).dot(W1_inv).dot(self.B1)
+        return self._L0
+
+    @property
+    def L1(self):
+        """Compute the edge laplacian."""
+        if self._L1 is None:
+            W1_inv = self.W1.copy()
+            W1_inv.data = 1.0 / W1_inv.data
+            self._L1 = self.B1.dot(self.W0).dot(self.B1.T).dot(W1_inv)
+
+            if self.W2 is not None:
+                W2_inv = self.W2.copy()
+                W2_inv.data = 1.0 / W2_inv.data
+                self._L1 += self.W1.dot(self.B2.T).dot(W2_inv).dot(self.B2)
+        return self._L1
+
+    @property
+    def V(self):
+        if self._V is None:
+            self._V = sc.sparse.csr_matrix(
+                np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
             )
-            for face_index, face in enumerate(self.faces):
-                for i in range(3):
-                    edge = tuple(np.roll(face, i)[:2])
-                    edge_rev = tuple(np.roll(face, i)[1::-1])
-                    if edge in self.edgelist:
-                        edge_index = self.edgelist.index(edge)
-                        self.edge_incidence_matrix[face_index, edge_index] = 1.0
-                    elif edge_rev in self.edgelist:
-                        edge_index = self.edgelist.index(edge_rev)
-                        self.edge_incidence_matrix[face_index, edge_index] = -1.0
-                    else:
-                        raise Exception("The face is not a triangle in the graph")
-    
+        return self._V
+
+    @property
+    def lifted_B1(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_B1 is None:
+            self._liftted_B1 = self.V.dot(self.B1)
+        return self._liftted_B1
+
+    @property
+    def lifted_B2(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_B2 is None:
+            self._liftted_B2 = self.B2.dot(self.V.T)
+        return self._liftted_B2
+
+    @property
+    def lifted_L0(self):
+        """Get lifted node laplacian."""
+        if self._lifted_L0 is None:
+            lifted_B1_pos = self.lifted_B1.copy()
+            lifted_B1_pos[lifted_B1_pos < 0] = 0
+            self._lifted_L0 = lifted_B1_pos.T.dot(self.lifted_B1)
+        return self._lifted_L0
+
+    @property
+    def lifted_L1(self):
+        """Get lifted edge laplacian."""
+        if self._lifted_L1 is None:
+            lifted_B1_pos = self.lifted_B1.copy()
+            lifted_B1_pos[lifted_B1_pos < 0] = 0
+            self._lifted_L1 = self.lifted_B1.dot(lifted_B1_pos.T)
+            print(self.W2)
+            if self.W2 is not None:
+                lifted_B2_pos = self.lifted_B2.copy()
+                lifted_B2_pos[lifted_B2_pos < 0] = 0
+                self._lifted_L1 += lifted_B2_pos.T.dot(self.lifted_B2)
+        return self._lifted_L1
+
     def remove_zero_weight_edges_faces(self, return_idx=False):
-        B0 = self.node_incidence_matrix.toarray()
+        """This iis broken!"""
+        B0 = self.B1.toarray()
         W0 = self.node_weights_matrix.toarray()
         B1 = self.edge_incidence_matrix.toarray()
         W1 = self.edge_weights_matrix.toarray()
@@ -132,68 +209,40 @@ class SimplicialComplex:
 
         zero_weight_edges = W1.any(axis=1)
         zero_weight_faces = W2.any(axis=1)
-        
+
         # remove edges from node incidence matrix
-        B0 = np.delete(B0,np.where(~zero_weight_edges),axis=0)
-        
+        B0 = np.delete(B0, np.where(~zero_weight_edges), axis=0)
+
         # remove edges from edge weight matrix
-        W1 = np.delete(W1,np.where(~zero_weight_edges),axis=0)
-        W1 = np.delete(W1,np.where(~zero_weight_edges),axis=1)
-        
+        W1 = np.delete(W1, np.where(~zero_weight_edges), axis=0)
+        W1 = np.delete(W1, np.where(~zero_weight_edges), axis=1)
+
         # remove faces from edge incidence matrix
-        B1 = np.delete(B1 ,np.where(~zero_weight_faces),axis=0)
-        B1 = np.delete(B1 ,np.where(~zero_weight_edges),axis=1)
-        
+        B1 = np.delete(B1, np.where(~zero_weight_faces), axis=0)
+        B1 = np.delete(B1, np.where(~zero_weight_edges), axis=1)
+
         # remove edges from edge weight matrix
-        W2 = np.delete(W2,np.where(~zero_weight_faces),axis=0)
-        W2 = np.delete(W2,np.where(~zero_weight_faces),axis=1)
-        
-        self.node_incidence_matrix = sc.sparse.lil_matrix(B0)
+        W2 = np.delete(W2, np.where(~zero_weight_faces), axis=0)
+        W2 = np.delete(W2, np.where(~zero_weight_faces), axis=1)
+
+        self.B1 = sc.sparse.lil_matrix(B0)
         self.node_weights_matrix = sc.sparse.lil_matrix(W0)
         self.edge_incidence_matrix = sc.sparse.lil_matrix(B1)
-        self.edge_weights_matrix = sc.sparse.spdiags(np.diagonal(W1),0, W1.shape[0], W1.shape[0])
-        self.face_weights_matrix = sc.sparse.spdiags(np.diagonal(W2),0, W2.shape[0], W2.shape[0])        
-                
+        self.edge_weights_matrix = sc.sparse.spdiags(
+            np.diagonal(W1), 0, W1.shape[0], W1.shape[0]
+        )
+        self.face_weights_matrix = sc.sparse.spdiags(
+            np.diagonal(W2), 0, W2.shape[0], W2.shape[0]
+        )
+
         self.n_edges = W1.shape[0]
-        self.n_faces = W2.shape[0]        
-        
+        self.n_faces = W2.shape[0]
+
         self.graph = nx.Graph(self.graph)
-        
+
         # remove edges from nx graph
         for edge_id in np.where(~zero_weight_edges)[0]:
-            edge = self.edgelist[edge_id]    
-            self.graph.remove_edge(edge[0],edge[1])
-       
-        
+            edge = self.edgelist[edge_id]
+            self.graph.remove_edge(edge[0], edge[1])
+
         return zero_weight_edges, zero_weight_faces
-        
-    @property
-    def node_laplacian(self):
-        """Compute the node laplacian."""
-        B0 = self.node_incidence_matrix
-        W0 = self.node_weights_matrix
-        W1 = self.edge_weights_matrix
-        W1_inv = W1.copy()
-        W1_inv.data = 1./ W1_inv.data
-        return W0.dot(B0.T).dot(W1_inv).dot(B0)
-
-
-    @property
-    def edge_laplacian(self):
-        """Compute the edge laplacian."""
-        B0 = self.node_incidence_matrix
-        W0 = self.node_weights_matrix
-        B1 = self.edge_incidence_matrix
-        W1 = self.edge_weights_matrix
-        W2 = self.face_weights_matrix
-
-        W1_inv = W1.copy()
-        W1_inv.data = 1./ W1_inv.data
-        L1 = B0.dot(W0).dot(B0.T).dot(W1_inv)
-
-        if W2 is not None:
-            W2_inv = W2.copy()
-            W2_inv.data = 1./ W2_inv.data
-            L1 += W1.dot(B1.T).dot(W2_inv).dot(B1)
-
-        return L1
