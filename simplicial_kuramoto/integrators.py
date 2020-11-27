@@ -7,9 +7,9 @@ from scipy.integrate import solve_ivp
 
 def node_simplicial_kuramoto(time, phase, simplicial_complex=None, omega_0=None):
     """Node simplicial kuramoto, or classical Kuramoto."""
-    B0 = simplicial_complex.node_incidence_matrix
-    W0 = simplicial_complex.node_weights_matrix
-    W1 = simplicial_complex.edge_weights_matrix
+    B0 = simplicial_complex.B0
+    W0 = simplicial_complex.W0
+    W1 = simplicial_complex.W1
 
     if omega_0 is None:
         omega_0 = np.zeros(simplicial_complex.n_nodes)
@@ -45,11 +45,11 @@ def integrate_node_kuramoto(
 
 def edge_simplicial_kuramoto(time, phase, simplicial_complex=None, omega_0=None):
     """Edge simplicial kuramoto"""
-    B0 = simplicial_complex.node_incidence_matrix
-    W0 = simplicial_complex.node_weights_matrix
-    B1 = simplicial_complex.edge_incidence_matrix
-    W1 = simplicial_complex.edge_weights_matrix
-    W2 = simplicial_complex.face_weights_matrix
+    B0 = simplicial_complex.B0
+    W0 = simplicial_complex.W0
+    B1 = simplicial_complex.B1
+    W1 = simplicial_complex.W1
+    W2 = simplicial_complex.W2
 
     if omega_0 is None:
         omega_0 = np.zeros(simplicial_complex.n_edges)
