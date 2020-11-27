@@ -225,13 +225,13 @@ class SimplicialComplex:
         W2 = np.delete(W2, np.where(~zero_weight_faces), axis=0)
         W2 = np.delete(W2, np.where(~zero_weight_faces), axis=1)
 
-        self.B1 = sc.sparse.lil_matrix(B0)
-        self.W0 = sc.sparse.lil_matrix(W0)
-        self.B1 = sc.sparse.lil_matrix(B1)
-        self.W1= sc.sparse.spdiags(
+        self._B0 = sc.sparse.lil_matrix(B0)
+        self._W0 = sc.sparse.lil_matrix(W0)
+        self._B1 = sc.sparse.lil_matrix(B1)
+        self._W1= sc.sparse.spdiags(
             np.diagonal(W1), 0, W1.shape[0], W1.shape[0]
         )
-        self.W2 = sc.sparse.spdiags(
+        self._W2 = sc.sparse.spdiags(
             np.diagonal(W2), 0, W2.shape[0], W2.shape[0]
         )
 
