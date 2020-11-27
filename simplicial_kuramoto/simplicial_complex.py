@@ -202,10 +202,10 @@ class SimplicialComplex:
     def remove_zero_weight_edges_faces(self, return_idx=False):
         """This iis broken!"""
         B0 = self.B0.toarray()
-        W0 = self.node_weights_matrix.toarray()
-        B1 = self.edge_incidence_matrix.toarray()
-        W1 = self.edge_weights_matrix.toarray()
-        W2 = self.face_weights_matrix.toarray()
+        W0 = self.W0.toarray()
+        B1 = self.B1.toarray()
+        W1 = self.W1.toarray()
+        W2 = self.W2.toarray()
 
         zero_weight_edges = W1.any(axis=1)
         zero_weight_faces = W2.any(axis=1)
@@ -226,12 +226,12 @@ class SimplicialComplex:
         W2 = np.delete(W2, np.where(~zero_weight_faces), axis=1)
 
         self.B1 = sc.sparse.lil_matrix(B0)
-        self.node_weights_matrix = sc.sparse.lil_matrix(W0)
-        self.edge_incidence_matrix = sc.sparse.lil_matrix(B1)
-        self.edge_weights_matrix = sc.sparse.spdiags(
+        self.W0 = sc.sparse.lil_matrix(W0)
+        self.B1 = sc.sparse.lil_matrix(B1)
+        self.W1= sc.sparse.spdiags(
             np.diagonal(W1), 0, W1.shape[0], W1.shape[0]
         )
-        self.face_weights_matrix = sc.sparse.spdiags(
+        self.W2 = sc.sparse.spdiags(
             np.diagonal(W2), 0, W2.shape[0], W2.shape[0]
         )
 
