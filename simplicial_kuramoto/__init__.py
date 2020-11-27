@@ -1,4 +1,4 @@
 from .simplicial_complex import SimplicialComplex
-from .integrators import integrate_edge_kuramoto, integrate_node_kuramoto
+from .integrators import integrate_edge_kuramoto, integrate_node_kuramoto, integrate_edge_kuramoto_frustrated
 
 # from .simplicial_kuramoto import integrate_edge_kuramoto, integrate_node_kuramoto
