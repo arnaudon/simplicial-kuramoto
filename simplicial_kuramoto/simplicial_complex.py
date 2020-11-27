@@ -32,7 +32,11 @@ class SimplicialComplex:
 
         self._V = None
         self._lifted_B0 = None
+        self._lifted_B0_p = None
+        self._lifted_B0_n = None
         self._lifted_B1 = None
+        self._lifted_B1_p = None
+        self._lifted_B1_n = None
         self._lifted_L0 = None
         self._lifted_L1 = None
 
@@ -170,11 +174,47 @@ class SimplicialComplex:
         return self._liftted_B0
 
     @property
+    def lifted_B0_p(self):
+        """Create the positive part lifted version of incidence matrices."""
+        if self._lifted_B0_p is None:
+            temp=self.lifted_B0.copy()
+            temp[temp<0] = 0
+            self._lifted_B0_p = temp
+        return self._lifted_B0_p
+    
+    @property
+    def lifted_B0_n(self):
+        """Create the negative part lifted version of incidence matrices."""
+        if self._lifted_B0_n is None:
+            temp=self.lifted_B0.copy()
+            temp[temp>0] = 0
+            self._lifted_B0_n = np.negative(temp)
+        return self._lifted_B0_n
+    
+    @property
     def lifted_B1(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_B1 is None:
             self._liftted_B1 = self.B1.dot(self.V.T)
         return self._liftted_B1
+    
+    @property
+    def lifted_B1_p(self):
+        """Create the positive part lifted version of incidence matrices."""
+        if self._lifted_B1_p is None:
+            temp=self.lifted_B1.copy()
+            temp[temp<0] = 0
+            self._lifted_B1_p = temp
+        return self._lifted_B1_p
+    
+    @property
+    def lifted_B1_n(self):
+        """Create the negative part lifted version of incidence matrices."""
+        if self._lifted_B1_n is None:
+            temp=self.lifted_B1.copy()
+            temp[temp>0] = 0
+            self._lifted_B1_n = np.negative(temp)
+        return self._lifted_B1_n
 
     @property
     def lifted_L0(self):
@@ -192,7 +232,7 @@ class SimplicialComplex:
             lifted_B0_pos = self.lifted_B0.copy()
             lifted_B0_pos[lifted_B0_pos < 0] = 0
             self._lifted_L1 = self.lifted_B0.dot(lifted_B0_pos.T)
-            print(self.W2)
+#            print(self.W2)
             if self.W2 is not None:
                 lifted_B1_pos = self.lifted_B1.copy()
                 lifted_B1_pos[lifted_B1_pos < 0] = 0
