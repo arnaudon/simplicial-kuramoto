@@ -237,6 +237,7 @@ class SimplicialComplex:
                 lifted_B1_pos = self.lifted_B1.copy()
                 lifted_B1_pos[lifted_B1_pos < 0] = 0
                 self._lifted_L1 += lifted_B1_pos.T.dot(self.lifted_B1)
+                self._lifted_L1 = 0.5*self._lifted_L1
         return self._lifted_L1
 
     def remove_zero_weight_edges_faces(self, return_idx=False):
