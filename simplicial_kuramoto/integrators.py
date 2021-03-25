@@ -60,7 +60,7 @@ def edge_simplicial_kuramoto(time, phase, simplicial_complex=None, omega_0=None)
     if W2 is not None:
         W2_inv = W2.copy()
         W2_inv.data = 1./ W2_inv.data
-        rhs += W1.dot(B1.T).dot(np.sin(W2_inv.dot(B1).dot(phase)))
+        rhs += W1.dot(B1.T).dot(W2_inv.dot(np.sin(B1.dot(phase))))
     return omega_0 - rhs
 
 
@@ -103,6 +103,13 @@ def node_simplicial_kuramoto_frustrated(time, phase, simplicial_complex=None, al
     else:
         alpha_1_v=simplicial_complex.V.dot(alpha_1)
 
+    W1_inv = W1.copy()
+    W1_inv.data = 1./ W1_inv.data
+    
+    """Need to figure out how to put the weights in in the lifted space.
+    rhs=-alpha_0-W0.dot(LB0p.T.dot(W1_inv.dot(np.sin(LB0.dot(phase)-alpha_1_v))))
+    """
+    
     rhs=-alpha_0-LB0p.T.dot(np.sin(LB0.dot(phase)-alpha_1_v))
 
     return rhs
