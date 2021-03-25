@@ -35,6 +35,7 @@ def plot_edge_kuramoto(edge_results):
     )
     plt.title("Phases")
     plt.colorbar()
+    plt.show()
 
 
 def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
@@ -131,6 +132,35 @@ def plot_order_parameter(phases, return_op=False, plot=True):
     if return_op:
         return op
 
+def module_order_parameter(theta, community_assignement):
+    
+    Nc=len(np.unique(community_assignement))
+    Nn=theta.shape[0]
+    Nt=theta.shape[1]
+    
+    op=np.zeros((Nc+1,Nt))
+    
+    for c in range(Nc):
+        ind=np.argwhere(community_assignement==c)
+        op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0))/len(ind)
+    
+    op[-1,:]=np.absolute(np.exp(1j*theta).sum(0))/Nn
+    
+    return op
+    
+def Shanahan_indices(op):
+    """
+    compute the two Shanahan indices
+    
+        l is the average across communities of the variance of the order parameter within communities ("global" metastability)
+        chi is the avarage across time of the variance of the order parameter across communities at time t (Chimeraness of the system)
+        op should have dimensions (number of communities+1,time), the plus one is for global order parameter on the first row
+    """
+    
+    l = np.var(op[0:-2], axis=1).mean()
+    chi = np.var(op[0:-2], axis=0).mean()
+    
+    return l, chi
 
 def plot_unit_circle(phases):
     t = np.linspace(0, 2 * np.pi, 1000)

@@ -3,7 +3,7 @@ import networkx as nx
 import numpy as np
 
 
-def modular_graph(Nc, Nn, Nie, rando=True):
+def modular_graph(Nc, Nn, Nie, inter_strength=1, rando=True):
     """"
     Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
         Nc: number of modules
