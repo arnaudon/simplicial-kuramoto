@@ -23,7 +23,11 @@ class SimplicialComplex:
         self.edgelist = list(self.graph.edges)
 
         self._B0 = None
+        self._B0_p = None
+        self._B0_n = None
         self._B1 = None
+        self._B1_p = None
+        self._B1_n = None
         self._W0 = None
         self._W1 = None
         self._W2 = None
@@ -114,7 +118,25 @@ class SimplicialComplex:
                 self.graph, edgelist=self.edgelist, oriented=True
             ).T
         return self._B0
-
+    
+    @property
+    def B0_p(self):
+        """Create the positive part of incidence matrices."""
+        if self._B0_p is None:
+            temp=self.B0.copy()
+            temp[temp<0] = 0
+            self._B0_p = temp
+        return self._B0_p
+    
+    @property
+    def B0_n(self):
+        """Create the negative part of incidence matrices."""
+        if self._B0_n is None:
+            temp=self.B0.copy()
+            temp[temp>0] = 0
+            self._B0_n = np.negative(temp)
+        return self._B0_n
+    
     @property
     def B1(self):
         """Create edge incidence matrix."""
@@ -135,6 +157,24 @@ class SimplicialComplex:
                             raise Exception("The face is not a triangle in the graph")
         return self._B1
 
+    @property
+    def B1_p(self):
+        """Create the positive part of incidence matrices."""
+        if self._B1_p is None:
+            temp=self.B1.copy()
+            temp[temp<0] = 0
+            self._B1_p = temp
+        return self._B1_p
+    
+    @property
+    def B1_n(self):
+        """Create the negative part of incidence matrices."""
+        if self._B1_n is None:
+            temp=self.B1.copy()
+            temp[temp>0] = 0
+            self._B1_n = np.negative(temp)
+        return self._B1_n
+    
     @property
     def L0(self):
         """Compute the node laplacian."""
