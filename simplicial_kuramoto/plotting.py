@@ -10,12 +10,14 @@ from scipy.linalg import null_space
 
 def plot_node_kuramoto(node_results):
     """Basic plot for node kuramoto."""
-    plt.figure()
+    plt.figure(figsize=(10, 5))
     plt.imshow(
-        node_results.y,
+        #node_results.y,
+        np.round(node_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
         aspect="auto",
-        cmap="twilight_shifted",
+        # cmap="twilight_shifted",
         extent=(node_results.t[0], node_results.t[-1], 0, len(node_results.y)),
+        interpolation='nearest',
     )
     plt.xlabel("time")
     plt.ylabel("mode id")
@@ -26,11 +28,11 @@ def plot_edge_kuramoto(edge_results):
     """Basic plot for edge kuramoto."""
     plt.figure()
     plt.imshow(
-        np.round(edge_results.y + np.pi, 2) %  (2 * np.pi) - np.pi,
-        #edge_results.y,
+        np.round(edge_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
+        # edge_results.y,
         aspect="auto",
         cmap="twilight_shifted",
-        interpolation='nearest',
+        interpolation="nearest",
         extent=(edge_results.t[0], edge_results.t[-1], 0, len(edge_results.y)),
     )
     plt.title("Phases")
