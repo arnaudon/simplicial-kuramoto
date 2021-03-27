@@ -128,7 +128,25 @@ class SimplicialComplex:
         if self._B0 is None:
             self._B0 = nx.incidence_matrix(self.graph, edgelist=self.edgelist, oriented=True).T
         return self._B0
-
+    
+    @property
+    def B0_p(self):
+        """Create the positive part of incidence matrices."""
+        if self._B0_p is None:
+            temp=self.B0.copy()
+            temp[temp<0] = 0
+            self._B0_p = temp
+        return self._B0_p
+    
+    @property
+    def B0_n(self):
+        """Create the negative part of incidence matrices."""
+        if self._B0_n is None:
+            temp=self.B0.copy()
+            temp[temp>0] = 0
+            self._B0_n = np.negative(temp)
+        return self._B0_n
+    
     @property
     def N0(self):
         """Create weighted node incidence matrix."""

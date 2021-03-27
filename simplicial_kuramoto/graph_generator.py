@@ -4,7 +4,7 @@ import numpy as np
 
 
 def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
-    """ "
+    """
     Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
         Nc: number of modules
         Nn: number of nodes per module
