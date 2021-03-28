@@ -4,6 +4,7 @@ import numpy as np
 from scipy.sparse.linalg import eigs
 from scipy.linalg import null_space
 
+from itertools import combinations
 
 # from utils import *
 
@@ -134,22 +135,40 @@ def plot_order_parameter(phases, return_op=False, plot=True):
     if return_op:
         return op
 
-def module_order_parameter(theta, community_assignement):
+def module_order_parameter(theta, community_assignment):
     
-    Nc=len(np.unique(community_assignement))
+    Nc=len(np.unique(community_assignment))
     Nn=theta.shape[0]
     Nt=theta.shape[1]
     
     op=np.zeros((Nc+1,Nt))
     
     for c in range(Nc):
-        ind=np.argwhere(community_assignement==c)
+        ind=np.argwhere(community_assignment==c)
         op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0))/len(ind)
     
     op[-1,:]=np.absolute(np.exp(1j*theta).sum(0))/Nn
     
     return op
+
+def pairwise_synchronisation(theta,community_assignment):
     
+    comms = np.unique(community_assignment)
+    Nn=theta.shape[0]
+    Nt=theta.shape[1]
+    Nc=len(np.unique(community_assignment))
+    op=np.zeros((Nc,Nt))
+
+    cnt = 0
+    for c1,c2 in [comb for comb in combinations(comms, 2)]:
+        ind1=np.argwhere(community_assignment==c1)
+        ind2=np.argwhere(community_assignment==c2)                  
+          
+        op[cnt,:] = np.absolute(0.5*(np.exp(1j*theta[ind1,:]).sum(0) + np.exp(1j*theta[ind2,:]).sum(0)))  /(len(ind1)+len(ind2))
+        cnt = cnt + 1     
+    
+    return op
+  
 def Shanahan_indices(op):
     """
     compute the two Shanahan indices
@@ -162,7 +181,10 @@ def Shanahan_indices(op):
     l = np.var(op[0:-2], axis=1).mean()
     chi = np.var(op[0:-2], axis=0).mean()
     
+
+
     return l, chi
+
 
 def plot_unit_circle(phases):
     t = np.linspace(0, 2 * np.pi, 1000)
