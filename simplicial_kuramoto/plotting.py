@@ -145,16 +145,35 @@ def module_order_parameter(theta, community_assignment):
     
     for c in range(Nc):
         ind=np.argwhere(community_assignment==c)
-        op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0))/len(ind)
+        op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0)/len(ind))
     
     op[-1,:]=np.absolute(np.exp(1j*theta).sum(0))/Nn
     
     return op
 
+
+def coalition_entropy(op, gamma=0.8):
+    
+    coalitions = (op[:-1]>gamma).T*1
+    unique_coalitions = np.unique(coalitions,axis=0)
+    Nt = op.shape[1]
+    M = op.shape[0]-1
+
+    coalition_prob = np.zeros(unique_coalitions.shape[0])
+
+    for i in range(unique_coalitions.shape[0]):
+
+        coalition = unique_coalitions[i,:]
+        coalition_prob[i] =  (coalitions == coalition).all(-1).sum()/Nt
+
+
+    ce = -(coalition_prob*np.log2(coalition_prob)).sum()/M    
+    
+    return ce
+    
 def pairwise_synchronisation(theta,community_assignment):
     
     comms = np.unique(community_assignment)
-    Nn=theta.shape[0]
     Nt=theta.shape[1]
     Nc=len(np.unique(community_assignment))
     op=np.zeros((Nc,Nt))
@@ -178,8 +197,8 @@ def Shanahan_indices(op):
         op should have dimensions (number of communities+1,time), the plus one is for global order parameter on the first row
     """
     
-    l = np.var(op[0:-2], axis=1).mean()
-    chi = np.var(op[0:-2], axis=0).mean()
+    l = np.var(op[0:-1], axis=1).mean()
+    chi = np.var(op[0:-1], axis=0).mean()
     
 
 
