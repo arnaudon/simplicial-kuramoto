@@ -137,7 +137,7 @@ def plot_order_parameter(phases, return_op=False, plot=True):
 
 def module_order_parameter(theta, community_assignment):
     
-    Nc=len(np.unique(community_assignment))
+    Nc=len(np.unique(community_assignment[~np.isnan(community_assignment)]))
     Nn=theta.shape[0]
     Nt=theta.shape[1]
     
@@ -150,6 +150,25 @@ def module_order_parameter(theta, community_assignment):
     op[-1,:]=np.absolute(np.exp(1j*theta).sum(0))/Nn
     
     return op
+
+
+def module_gradient_parameter(theta, community_assignment):
+    
+    phase_gradient = np.zeros_like(theta)
+    for i in range(theta.shape[0]):
+        phase_gradient[i,:] = np.gradient(theta[i,:])
+
+    Nc=len(np.unique(community_assignment[~np.isnan(community_assignment)]))
+    Nn=phase_gradient.shape[0]
+    Nt=phase_gradient.shape[1]
+    
+    op=np.zeros((Nc,Nt))
+    
+    for c in range(Nc):
+        ind=np.argwhere(community_assignment==c)
+        op[c,:]=np.var(phase_gradient[ind,:],axis=0)    
+  
+    return op, phase_gradient
 
 
 def coalition_entropy(op, gamma=0.8):
@@ -170,7 +189,7 @@ def coalition_entropy(op, gamma=0.8):
     ce = -(coalition_prob*np.log2(coalition_prob)).sum()/M    
     
     return ce
-    
+
 def pairwise_synchronisation(theta,community_assignment):
     
     comms = np.unique(community_assignment)
