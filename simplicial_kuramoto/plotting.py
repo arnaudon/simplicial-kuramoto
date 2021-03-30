@@ -137,14 +137,15 @@ def plot_order_parameter(phases, return_op=False, plot=True):
 
 def module_order_parameter(theta, community_assignment):
     
-    Nc=len(np.unique(community_assignment[~np.isnan(community_assignment)]))
+    Nc=len(np.unique(community_assignment))
     Nn=theta.shape[0]
     Nt=theta.shape[1]
     
     op=np.zeros((Nc+1,Nt))
     
     for c in range(Nc):
-        ind=np.argwhere(community_assignment==c)
+        comm = community_assignment[c]
+        ind=np.argwhere(community_assignment==comm)
         op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0)/len(ind))
     
     op[-1,:]=np.absolute(np.exp(1j*theta).sum(0))/Nn
@@ -158,14 +159,15 @@ def module_gradient_parameter(theta, community_assignment):
     for i in range(theta.shape[0]):
         phase_gradient[i,:] = np.gradient(theta[i,:])
 
-    Nc=len(np.unique(community_assignment[~np.isnan(community_assignment)]))
+    Nc=len(np.unique(community_assignment))
     Nn=phase_gradient.shape[0]
     Nt=phase_gradient.shape[1]
     
     op=np.zeros((Nc,Nt))
     
     for c in range(Nc):
-        ind=np.argwhere(community_assignment==c)
+        comm = community_assignment[c]
+        ind=np.argwhere(community_assignment==comm)
         op[c,:]=np.var(phase_gradient[ind,:],axis=0)    
   
     return op, phase_gradient
@@ -181,7 +183,6 @@ def coalition_entropy(op, gamma=0.8):
     coalition_prob = np.zeros(unique_coalitions.shape[0])
 
     for i in range(unique_coalitions.shape[0]):
-
         coalition = unique_coalitions[i,:]
         coalition_prob[i] =  (coalitions == coalition).all(-1).sum()/Nt
 
