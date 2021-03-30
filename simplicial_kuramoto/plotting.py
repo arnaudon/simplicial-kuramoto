@@ -144,7 +144,7 @@ def module_order_parameter(theta, community_assignment):
     op=np.zeros((Nc+1,Nt))
     
     for c in range(Nc):
-        comm = community_assignment[c]
+        comm = np.unique(community_assignment)[c]
         ind=np.argwhere(community_assignment==comm)
         op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0)/len(ind))
     
@@ -166,7 +166,7 @@ def module_gradient_parameter(theta, community_assignment):
     op=np.zeros((Nc,Nt))
     
     for c in range(Nc):
-        comm = community_assignment[c]
+        comm = np.unique(community_assignment)[c]
         ind=np.argwhere(community_assignment==comm)
         op[c,:]=np.var(phase_gradient[ind,:],axis=0)    
   
