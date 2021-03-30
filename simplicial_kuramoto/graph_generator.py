@@ -3,6 +3,8 @@ import networkx as nx
 import numpy as np
 
 
+
+
 def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
     """
     Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
@@ -13,12 +15,14 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
 
     G = nx.Graph()
     G.add_nodes_from(np.linspace(1, Nc * Nn, Nc * Nn).astype(int).tolist())
-
+    node_assign, edge_assign = {}, {}
     # fully connected modules
     for i in range(Nc):
         for j in range(1, Nn + 1):
             for k in range(j + 1, Nn + 1):
-                G.add_edge((i * Nn) + j, (i * Nn) + k, weight=intra_weight)
+                G.add_edge((i * Nn) + j, (i * Nn) + k, weight=intra_weight, community=str((i,i)))
+                node_assign[(i * Nn) + j]  = str(i);
+                node_assign[(i * Nn) + k]  = str(i);
 
     if rando:
         for i in range(Nc):
@@ -26,8 +30,8 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                 source = np.random.randint(i * Nn + 1, (i + 1) * Nn, Nie).tolist()
                 sink = np.random.randint(j * (Nn + 1) + 1, (j + 1) * Nn, Nie).tolist()
                 for e in range(Nie):
-                    G.add_edge(source[e], sink[e], weight=inter_weight)
-
+                    G.add_edge(source[e], sink[e], weight=inter_weight, community=str((i,j)))
+                    
     else:
         Neig = np.linspace(1, Nn, Nn).astype(int)
         if Nie > 0:
@@ -39,13 +43,14 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                             G.add_edge(
                                 Neig.tolist()[j] + c1 * Nn,
                                 np.roll(Neig, -i).tolist()[j] + c2 * Nn,
-                                weight=inter_weight,
+                                weight=inter_weight, community=str((c1,c2))
                             )
                     for j in range(bonus):
                         G.add_edge(
                             Neig.tolist()[j] + c1 * Nn,
                             np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn,
-                            weight=inter_weight,
+                            weight=inter_weight, community=str((c1,c2))
                         )
-
+    nx.set_node_attributes(G, node_assign, 'community')
     return G
+
