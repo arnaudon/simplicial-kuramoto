@@ -13,12 +13,11 @@ def plot_node_kuramoto(node_results):
     """Basic plot for node kuramoto."""
     plt.figure(figsize=(10, 5))
     plt.imshow(
-        #node_results.y,
         np.round(node_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
         aspect="auto",
-        # cmap="twilight_shifted",
+        cmap="twilight_shifted",
         extent=(node_results.t[0], node_results.t[-1], 0, len(node_results.y)),
-        interpolation='nearest',
+        interpolation="nearest",
     )
     plt.xlabel("time")
     plt.ylabel("mode id")
@@ -30,7 +29,7 @@ def plot_edge_kuramoto(edge_results):
     plt.figure()
     plt.imshow(
         np.round(edge_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
-        # edge_results.y,
+        origin="lower",
         aspect="auto",
         cmap="twilight_shifted",
         interpolation="nearest",
@@ -135,92 +134,95 @@ def plot_order_parameter(phases, return_op=False, plot=True):
     if return_op:
         return op
 
+
 def module_order_parameter(theta, community_assignment):
-    
-    Nc=len(np.unique(community_assignment))
-    Nn=theta.shape[0]
-    Nt=theta.shape[1]
-    
-    op=np.zeros((Nc+1,Nt))
-    
+
+    Nc = len(np.unique(community_assignment))
+    Nn = theta.shape[0]
+    Nt = theta.shape[1]
+
+    op = np.zeros((Nc + 1, Nt))
+
     for c in range(Nc):
         comm = np.unique(community_assignment)[c]
-        ind=np.argwhere(community_assignment==comm)
-        op[c,:]=np.absolute(np.exp(1j*theta[ind,:]).sum(0)/len(ind))
-    
-    op[-1,:]=np.absolute(np.exp(1j*theta).sum(0))/Nn
-    
+        ind = np.argwhere(community_assignment == comm)
+        op[c, :] = np.absolute(np.exp(1j * theta[ind, :]).sum(0) / len(ind))
+
+    op[-1, :] = np.absolute(np.exp(1j * theta).sum(0)) / Nn
+
     return op
 
 
 def module_gradient_parameter(theta, community_assignment):
-    
+
     phase_gradient = np.zeros_like(theta)
     for i in range(theta.shape[0]):
-        phase_gradient[i,:] = np.gradient(theta[i,:])
+        phase_gradient[i, :] = np.gradient(theta[i, :])
 
-    Nc=len(np.unique(community_assignment))
-    Nn=phase_gradient.shape[0]
-    Nt=phase_gradient.shape[1]
-    
-    op=np.zeros((Nc,Nt))
-    
+    Nc = len(np.unique(community_assignment))
+    Nn = phase_gradient.shape[0]
+    Nt = phase_gradient.shape[1]
+
+    op = np.zeros((Nc, Nt))
+
     for c in range(Nc):
         comm = np.unique(community_assignment)[c]
-        ind=np.argwhere(community_assignment==comm)
-        op[c,:]=np.var(phase_gradient[ind,:],axis=0)    
-  
+        ind = np.argwhere(community_assignment == comm)
+        op[c, :] = np.var(phase_gradient[ind, :], axis=0)
+
     return op, phase_gradient
 
 
 def coalition_entropy(op, gamma=0.8):
-    
-    coalitions = (op[:-1]>gamma).T*1
-    unique_coalitions = np.unique(coalitions,axis=0)
+
+    coalitions = (op[:-1] > gamma).T * 1
+    unique_coalitions = np.unique(coalitions, axis=0)
     Nt = op.shape[1]
-    M = op.shape[0]-1
+    M = op.shape[0] - 1
 
     coalition_prob = np.zeros(unique_coalitions.shape[0])
 
     for i in range(unique_coalitions.shape[0]):
-        coalition = unique_coalitions[i,:]
-        coalition_prob[i] =  (coalitions == coalition).all(-1).sum()/Nt
+        coalition = unique_coalitions[i, :]
+        coalition_prob[i] = (coalitions == coalition).all(-1).sum() / Nt
 
+    ce = -(coalition_prob * np.log2(coalition_prob)).sum() / M
 
-    ce = -(coalition_prob*np.log2(coalition_prob)).sum()/M    
-    
     return ce
 
-def pairwise_synchronisation(theta,community_assignment):
-    
+
+def pairwise_synchronisation(theta, community_assignment):
+
     comms = np.unique(community_assignment)
-    Nt=theta.shape[1]
-    Nc=len(np.unique(community_assignment))
-    op=np.zeros((Nc,Nt))
+    Nt = theta.shape[1]
+    Nc = len(np.unique(community_assignment))
+    op = np.zeros((Nc, Nt))
 
     cnt = 0
-    for c1,c2 in [comb for comb in combinations(comms, 2)]:
-        ind1=np.argwhere(community_assignment==c1)
-        ind2=np.argwhere(community_assignment==c2)                  
-          
-        op[cnt,:] = np.absolute(0.5*(np.exp(1j*theta[ind1,:]).sum(0) + np.exp(1j*theta[ind2,:]).sum(0)))  /(len(ind1)+len(ind2))
-        cnt = cnt + 1     
-    
+    for c1, c2 in [comb for comb in combinations(comms, 2)]:
+        ind1 = np.argwhere(community_assignment == c1)
+        ind2 = np.argwhere(community_assignment == c2)
+
+        op[cnt, :] = np.absolute(
+            0.5
+            * (np.exp(1j * theta[ind1, :]).sum(0) + np.exp(1j * theta[ind2, :]).sum(0))
+        ) / (len(ind1) + len(ind2))
+        cnt = cnt + 1
+
     return op
-  
+
+
 def Shanahan_indices(op):
     """
     compute the two Shanahan indices
-    
+
         l is the average across communities of the variance of the order parameter within communities ("global" metastability)
         chi is the avarage across time of the variance of the order parameter across communities at time t (Chimeraness of the system)
         op should have dimensions (number of communities+1,time), the plus one is for global order parameter on the first row
     """
-    
+
     l = np.var(op[0:-1], axis=1).mean()
     chi = np.var(op[0:-1], axis=0).mean()
-    
-
 
     return l, chi
 
