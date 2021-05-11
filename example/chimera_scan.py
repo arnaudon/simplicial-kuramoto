@@ -6,11 +6,13 @@ from functools import partial
 from importlib import import_module
 from pathlib import Path
 import itertools
+import os
 
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 from sklearn import preprocessing
+import pickle
 
 import multiprocessing
 import multiprocessing.pool
@@ -31,12 +33,15 @@ def scan_chimera_parameters(
                             t_max=100,
                             n_t=100,
                             save=True,
+                            folder='./results/',
+                            filename='results.pkl',
                             initial_phase = None,
                             random_seed=None,
                             ):
     
-    
-    
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+        
     parameter_combinations = list(itertools.product(alpha1,alpha2))
     
     results = compute_scan(
@@ -50,6 +55,9 @@ def scan_chimera_parameters(
                             random_seed=random_seed,
                             )
     
+    if save:
+        with open(folder+filename, 'wb') as f:
+            pickle.dump([simplicial_complex,results], f)
     
     return results
 
@@ -68,10 +76,13 @@ def integrate_kuramoto(
     np.random.seed(random_seed)
     
     if initial_phase is None:
-        initial_phase = np.random.random(simplicial_complex.n_edges)
+        randomise_phase=True
     
     edge_results = []
     for r in range(repeats):
+        
+        if randomise_phase:
+            initial_phase = np.random.random(simplicial_complex.n_edges)
         edge_results.append(
             integrate_edge_kuramoto(
                     simplicial_complex, initial_phase, t_max, n_t, alpha_1=parameters[0], alpha_2=parameters[1],

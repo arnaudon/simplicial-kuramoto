@@ -15,50 +15,10 @@ from simplicial_kuramoto.graph_generator import modular_graph
 from simplicial_kuramoto.integrators import *
 from simplicial_kuramoto.plotting import *
 
+from chimera_scan import scan_chimera_parameters
 
-def scan_parameters(Gsc,
-                    filename='parameter_scan.pkl',
-                    tmax=100,
-                    n_t=100,
-                    n_alpha1=20,
-                    n_alpha2=20,
-                    random_seed=None
-                    ):
-    
-    np.random.seed(random_seed)
-    initial_phase = np.random.random(Gsc.n_edges)
-    
-    t_max = 100
-    n_t = 100
-    
-    alpha_1 = np.linspace(0,np.pi,n_alpha1)
-    alpha_2 = np.linspace(0,np.pi,n_alpha2)
-    
-    gms = np.zeros([alpha_1.shape[0],alpha_2.shape[0]])
-    chi = np.zeros([alpha_1.shape[0],alpha_2.shape[0]])
-    ce = np.zeros([alpha_1.shape[0],alpha_2.shape[0]])
-    ceg = np.zeros([alpha_1.shape[0],alpha_2.shape[0]])
-    
-    for i,a1 in enumerate(tqdm(alpha_1)):
-        for j,a2 in enumerate(alpha_2):
-            edge_result = integrate_edge_kuramoto(
-                Gsc, initial_phase, t_max, n_t, alpha_1=a1, alpha_2=a2
-            )
-            op=module_order_parameter(edge_result.y,edge_community_assignment)    
-            gop, phase_gradient = module_gradient_parameter(edge_result.y, edge_community_assignment)
-            si = Shanahan_indices(op)
-            gms[i,j] = si[0]
-            chi[i,j] = si[1]
-            ce[i,j] = coalition_entropy(op)
-            ceg[i,j] = coalition_entropy(gop)
-            
-            
-    with open(filename, 'wb') as f:
-        pickle.dump([Gsc, gms, chi, ce, ceg], f)
-        
-    return 
 
-#### 3 nodes in each community
+#%%
 
 G=nx.Graph()
 G.add_edge(0,1,weight=1,edge_com=0)
@@ -72,11 +32,21 @@ G.add_edge(2,3,weight=1,edge_com=2)
 node_com_dict=dict(zip(list(np.linspace(0,5,6).astype(int)),[0,0,0,1,1,1]))
 nx.set_node_attributes(G, node_com_dict, "node_com")
 edge_community_assignment=np.array(list(nx.get_edge_attributes(G,'edge_com').values()))
+
+
 Gsc = SimplicialComplex(graph=G, no_faces=False)
-scan_parameters(Gsc,'results_graph_3_3.pkl')
+Gsc_noface = SimplicialComplex(graph=G, no_faces=True)
+
+alpha1 = np.linspace(0,np.pi,30)
+alpha2 = np.linspace(0,np.pi,30)
+n_repeats = 20
+
+results = scan_chimera_parameters(Gsc,filename='two_comms_three_nodes.pkl',alpha1=alpha1,alpha2=alpha2,repeats=n_repeats,)
+results = scan_chimera_parameters(Gsc_noface,filename='two_comms_three_nodes_nofaces.pkl',alpha1=alpha1,alpha2=alpha2,repeats=n_repeats,)
 
 
 
+#%%
 
 
 
@@ -100,8 +70,55 @@ G.add_edge(3,4,weight=1,edge_com=2)
 node_com_dict=dict(zip(list(np.linspace(0,5,6).astype(int)),[0,0,0,0,1,1,1,1]))
 nx.set_node_attributes(G, node_com_dict, "node_com")
 edge_community_assignment=np.array(list(nx.get_edge_attributes(G,'edge_com').values()))
-Gsc = SimplicialComplex(graph=G, no_faces=False)
 
-scan_parameters(Gsc,'results_graph_4_4.pkl')
+Gsc = SimplicialComplex(graph=G, no_faces=False)
+Gsc_noface = SimplicialComplex(graph=G, no_faces=True)
+
+alpha1 = np.linspace(0,np.pi,30)
+alpha2 = np.linspace(0,np.pi,30)
+n_repeats = 20
+
+results = scan_chimera_parameters(Gsc,filename='two_comms_four_nodes.pkl',alpha1=alpha1,alpha2=alpha2,repeats=n_repeats,)
+results = scan_chimera_parameters(Gsc_noface,filename='two_comms_four_nodes_nofaces.pkl',alpha1=alpha1,alpha2=alpha2,repeats=n_repeats,)
+
+
+#%%
+
+
+from simplicial_kuramoto.graph_generator import modular_graph
+
+Nn = 5
+Nie = int(Nn*(Nn-1)/2)
+inter_edges = np.linspace(1,Nie,Nie)
+
+
+n_inits = 10
+alpha1 = np.linspace(0,np.pi,30)
+alpha2 = [0]
+n_repeats = 20
+
+results_dict = {}
+for n_inter_edges in inter_edges:
+    
+    results_inits = []
+    for init in range(n_inits):
+        
+        g = modular_graph(2, Nn, int(n_inter_edges), rando=True, inter_weight=1, intra_weight=1)
+        while not nx.is_connected(g):
+            g = modular_graph(2, Nn, int(n_inter_edges), rando=True, inter_weight=1, intra_weight=1)
+   
+            
+        results = scan_chimera_parameters(Gsc,save=False,alpha1=alpha1,alpha2=alpha2,repeats=n_repeats)
+        results_inits.append(results)
+            
+    results_dict[p_out] = results_inits
+
+
+
+
+
+
+
+
 
 
