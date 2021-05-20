@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 
 from simplicial_kuramoto import SimplicialComplex
-from chimera_scan import scan_chimera_parameters
+from simplicial_kuramoto.frustration_scan import scan_chimera_parameters
 
 
 G = nx.Graph()

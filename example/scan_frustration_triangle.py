@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 
 from simplicial_kuramoto import SimplicialComplex
-from simpliccial_kuramoto.frustration_scan import scan_frustration_parameters
+from simplicial_kuramoto.frustration_scan import scan_frustration_parameters
 
 if __name__ == "__main__":
 

@@ -1,0 +1,14 @@
+README.md
+setup.py
+simplicial_kuramoto/__init__.py
+simplicial_kuramoto/chimera_measures.py
+simplicial_kuramoto/frustration_scan.py
+simplicial_kuramoto/graph_generator.py
+simplicial_kuramoto/integrators.py
+simplicial_kuramoto/plotting.py
+simplicial_kuramoto/simplicial_complex.py
+simplicial_kuramoto.egg-info/PKG-INFO
+simplicial_kuramoto.egg-info/SOURCES.txt
+simplicial_kuramoto.egg-info/dependency_links.txt
+simplicial_kuramoto.egg-info/requires.txt
+simplicial_kuramoto.egg-info/top_level.txt
