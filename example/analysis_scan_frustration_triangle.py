@@ -1,22 +1,8 @@
 import numpy as np
-import pandas as pd
 import itertools
 import matplotlib.pyplot as plt
-import matplotlib
-import networkx as nx
-import scipy as sc
-from scipy.spatial import Delaunay
-from scipy.spatial.distance import cdist
-import random
 
 import pickle
-from tqdm import tqdm
-
-from simplicial_kuramoto import SimplicialComplex
-from simplicial_kuramoto.graph_generator import modular_graph
-from simplicial_kuramoto.integrators import *
-from simplicial_kuramoto import plotting
-from simplicial_kuramoto.chimera_measures import *
 
 
 def plot_phases(path, filename):
