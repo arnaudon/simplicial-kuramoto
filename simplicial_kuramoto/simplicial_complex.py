@@ -21,9 +21,7 @@ def neg(matrix):
 class SimplicialComplex:
     """Class representing a simplicial complex."""
 
-    def __init__(
-        self, graph=None, faces=None, no_faces=False, verbose=False, face_weights=None
-    ):
+    def __init__(self, graph=None, faces=None, no_faces=False, verbose=False, face_weights=None):
         """Initialise the class.
 
         Args:
@@ -93,8 +91,27 @@ class SimplicialComplex:
             edge_indices = [edge_indices]
         for edge_index in edge_indices:
             self.edgelist[edge_index] = self.edgelist[edge_index][::-1]
+
         self._B0 = None
-        self._edge_incidence_matrix = None
+        self._N0 = None
+        self._N0s = None
+        self._B1 = None
+        self._N1 = None
+        self._N1s = None
+        self._W0 = None
+        self._W1 = None
+        self._W2 = None
+        self._L0 = None
+        self._L1 = None
+
+        self._V1 = None
+        self._V2 = None
+        self._lifted_N0 = None
+        self._lifted_N0sp = None
+        self._lifted_N1 = None
+        self._lifted_N1sp = None
+        self._lifted_L0 = None
+        self._lifted_L1 = None
 
     @property
     def W0(self):
@@ -124,18 +141,14 @@ class SimplicialComplex:
         if self._W2 is None:
             if self.faces is not None:
                 # print(self.face_weights)
-                self._W2 = sc.sparse.spdiags(
-                    self.face_weights, 0, self.n_faces, self.n_faces
-                )
+                self._W2 = sc.sparse.spdiags(self.face_weights, 0, self.n_faces, self.n_faces)
         return self._W2
 
     @property
     def B0(self):
         """Create node incidence matrix."""
         if self._B0 is None:
-            self._B0 = nx.incidence_matrix(
-                self.graph, edgelist=self.edgelist, oriented=True
-            ).T
+            self._B0 = nx.incidence_matrix(self.graph, edgelist=self.edgelist, oriented=True).T
         return self._B0
 
     @property

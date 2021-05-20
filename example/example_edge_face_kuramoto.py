@@ -8,7 +8,10 @@ if __name__ == "__main__":
     graph = nx.cycle_graph(3)
 
     complex_test = SimplicialComplex(graph=graph, faces=[[0, 1, 2]])
+    print(complex_test.N1.toarray())
 
+    complex_test = SimplicialComplex(graph=graph, faces=[[2, 1, 0]])
+    print(complex_test.N1.toarray())
     initial_phase = np.random.uniform(0, 2 * np.pi, len(graph.edges))
     initial_phase = np.zeros(len(graph.edges))
     initial_phase[0] = 1.0

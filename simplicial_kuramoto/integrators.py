@@ -62,7 +62,7 @@ def integrate_edge_kuramoto(
         [0, t_max],
         initial_phase,
         t_eval=np.linspace(0, t_max, n_t),
-        method="Radau",
+        method="BDF",
         rtol=1.0e-8,
         atol=1.0e-8,
     )

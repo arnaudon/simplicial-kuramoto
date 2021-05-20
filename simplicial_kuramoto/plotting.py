@@ -1,10 +1,8 @@
 """Plotting functions."""
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.sparse.linalg import eigs
 from scipy.linalg import null_space
 
-from itertools import combinations
 
 # from utils import *
 
@@ -26,7 +24,6 @@ def plot_node_kuramoto(node_results):
 
 def plot_edge_kuramoto(edge_results):
     """Basic plot for edge kuramoto."""
-    plt.figure()
     plt.imshow(
         np.round(edge_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
         origin="lower",
@@ -37,12 +34,10 @@ def plot_edge_kuramoto(edge_results):
     )
     plt.title("Phases")
     plt.colorbar()
-    plt.show()
 
 
 def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
     """ Some outputs (curl, div, etc ...) are only useful for understanding what is happening """
-    times = result.t
     phase = result.y
 
     B0 = simplicial_complex.node_incidence_matrix
@@ -53,7 +48,7 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
     # plt.title('Order parameter')
     # plt.plot(op[0,:])
 
-    if B1 == None:
+    if B1 is None:
         print("theta_0: ", initial_phase)
         print("theta_final: ", phase[:, -1])
         print(
@@ -76,9 +71,9 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
         # ns_ind=np.where(w<10e-8)
         # print("dim(Ker(L1)): ", len(ns_ind)
 
-        ns = null_space(
-            L1.toarray()
-        )  # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
+        # not ideal, would be better in principle to stay in sparse representation,
+        # but scipy.sparse.linalg.eigs does not work
+        ns = null_space(L1.toarray())
         print("dim(Ker(L1)): ", ns.shape[1])
         print("Ker(L1): ", ns)
     else:
@@ -105,9 +100,9 @@ def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
         # ns_ind=np.where(w<10e-8)
         # print("dim(Ker(L1)): ", len(ns_ind)
 
-        ns = null_space(
-            L1.toarray()
-        )  # not ideal, would be better in principle to stay in sparse representation, but scipy.sparse.linalg.eigs does not work
+        # not ideal, would be better in principle to stay in sparse representation,
+        # but scipy.sparse.linalg.eigs does not work
+        ns = null_space(L1.toarray())
         print("dim(Ker(L1)): ", ns.shape[1])
         print("Ker(L1): ", ns)
 
@@ -130,101 +125,8 @@ def plot_order_parameter(phases, return_op=False, plot=True):
         plt.figure()
         plt.plot(op)
         plt.title(op[-1])
-        plt.show()
     if return_op:
         return op
-
-
-def module_order_parameter(theta, community_assignment):
-
-    Nc = len(np.unique(community_assignment))
-    Nn = theta.shape[0]
-    Nt = theta.shape[1]
-
-    op = np.zeros((Nc + 1, Nt))
-
-    for c in range(Nc):
-        comm = np.unique(community_assignment)[c]
-        ind = np.argwhere(community_assignment == comm)
-        op[c, :] = np.absolute(np.exp(1j * theta[ind, :]).sum(0) / len(ind))
-
-    op[-1, :] = np.absolute(np.exp(1j * theta).sum(0)) / Nn
-
-    return op
-
-
-def module_gradient_parameter(theta, community_assignment):
-
-    phase_gradient = np.zeros_like(theta)
-    for i in range(theta.shape[0]):
-        phase_gradient[i, :] = np.gradient(theta[i, :])
-
-    Nc = len(np.unique(community_assignment))
-    Nn = phase_gradient.shape[0]
-    Nt = phase_gradient.shape[1]
-
-    op = np.zeros((Nc, Nt))
-
-    for c in range(Nc):
-        comm = np.unique(community_assignment)[c]
-        ind = np.argwhere(community_assignment == comm)
-        op[c, :] = np.var(phase_gradient[ind, :], axis=0)
-
-    return op, phase_gradient
-
-
-def coalition_entropy(op, gamma=0.8):
-
-    coalitions = (op[:-1] > gamma).T * 1
-    unique_coalitions = np.unique(coalitions, axis=0)
-    Nt = op.shape[1]
-    M = op.shape[0] - 1
-
-    coalition_prob = np.zeros(unique_coalitions.shape[0])
-
-    for i in range(unique_coalitions.shape[0]):
-        coalition = unique_coalitions[i, :]
-        coalition_prob[i] = (coalitions == coalition).all(-1).sum() / Nt
-
-    ce = -(coalition_prob * np.log2(coalition_prob)).sum() / M
-
-    return ce
-
-
-def pairwise_synchronisation(theta, community_assignment):
-
-    comms = np.unique(community_assignment)
-    Nt = theta.shape[1]
-    Nc = len(np.unique(community_assignment))
-    op = np.zeros((Nc, Nt))
-
-    cnt = 0
-    for c1, c2 in [comb for comb in combinations(comms, 2)]:
-        ind1 = np.argwhere(community_assignment == c1)
-        ind2 = np.argwhere(community_assignment == c2)
-
-        op[cnt, :] = np.absolute(
-            0.5
-            * (np.exp(1j * theta[ind1, :]).sum(0) + np.exp(1j * theta[ind2, :]).sum(0))
-        ) / (len(ind1) + len(ind2))
-        cnt = cnt + 1
-
-    return op
-
-
-def Shanahan_indices(op):
-    """
-    compute the two Shanahan indices
-
-        l is the average across communities of the variance of the order parameter within communities ("global" metastability)
-        chi is the avarage across time of the variance of the order parameter across communities at time t (Chimeraness of the system)
-        op should have dimensions (number of communities+1,time), the plus one is for global order parameter on the first row
-    """
-
-    l = np.var(op[0:-1], axis=1).mean()
-    chi = np.var(op[0:-1], axis=0).mean()
-
-    return l, chi
 
 
 def plot_unit_circle(phases):
@@ -234,4 +136,3 @@ def plot_unit_circle(phases):
     plt.plot([0, 0], [-1, 1], "b-.", linewidth=0.5)
     plt.plot([-1, 1], [0, 0], "b-.", linewidth=0.5)
     plt.plot(np.cos(phases[:, -1]), np.sin(phases[:, -1]), "o")
-    plt.show()
