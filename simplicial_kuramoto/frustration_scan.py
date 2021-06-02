@@ -6,6 +6,7 @@ from functools import partial
 import itertools
 import os
 
+from scipy.spatial import distance
 import numpy as np
 from tqdm import tqdm
 import pickle
@@ -21,6 +22,7 @@ from simplicial_kuramoto.chimera_measures import (
     coalition_entropy,
 )
 
+from simplicial_kuramoto.plotting import mod
 
 L = logging.getLogger(__name__)
 
@@ -190,7 +192,6 @@ def plot_measures(path, filename, marker=None):
         list(nx.get_edge_attributes(Gsc.graph, "edge_com").values())
     )
 
-
     gms, chi, ce, ceg = shanahan_metrics(results, alpha1, alpha2, edge_community_assignment)
 
     fig, axs = plt.subplots(2, 2)
@@ -219,6 +220,136 @@ def plot_measures(path, filename, marker=None):
     plt.colorbar(cm, ax=axs[1, 1])
     if marker is not None:
         axs[1, 1].scatter(marker[0], marker[1], s=100, c="red", marker="o")
+
+    fig.tight_layout()
+
+    fig.text(0.5, 0.0, "Alpha 2", ha="center")
+    fig.text(0.0, 0.5, "Alpha 1", va="center", rotation="vertical")
+
+    plt.savefig(filename, bbox_inches="tight")
+
+
+def plot_stationarity(path, filename, frac=0.2):
+    """Plot mean of variance of second half of simulation to see stationary state."""
+    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+
+    var = np.empty([len(alpha1), len(alpha2)])
+    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
+        result = mod(results[i][0].y)
+        var[idx_a1, idx_a2] = np.mean(np.var(result[:, int(np.shape(result)[1] * frac) :], axis=1))
+    plt.figure()
+    plt.imshow(var, origin="lower", extent=(alpha2[0], alpha2[-1], alpha1[0], alpha1[-1]), vmin=0)
+    plt.colorbar()
+    plt.savefig(filename, bbox_inches="tight")
+
+
+def rec_plot(s, eps=0.1, steps=10):
+    """Compute recurence plot.
+
+    Adapted from: https://github.com/laszukdawid/recurrence-plot/blob/master/plot_recurrence.py
+    """
+    return distance.squareform(np.clip(np.floor_divide(distance.pdist(s.T), eps), 0, steps))
+
+
+def plot_recurences(path, filename, eps=0.1, steps=10):
+    """Plot grid of recurence plots."""
+    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+
+    fig, axs = plt.subplots(len(alpha1), len(alpha2), figsize=(len(alpha2), len(alpha1)))
+    axs = np.flip(axs, axis=0)
+    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
+        plt.sca(axs[idx_a1, idx_a2])
+        result = mod(results[i][0].y)
+        plt.imshow(
+            rec_plot(result, eps=eps, steps=steps),
+            origin="lower",
+            aspect="auto",
+            cmap="Blues_r",
+            interpolation="nearest",
+            extent=(
+                results[i][0].t[0],
+                results[i][0].t[-1],
+                results[i][0].t[0],
+                results[i][0].t[-1],
+            ),
+            vmin=0,
+            vmax=steps,
+        )
+        plt.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
+
+    for idx_a1 in range(len(alpha1)):
+        axs[idx_a1, 0].set_ylabel(f"{np.round(alpha1[idx_a1], 2)}", fontsize=15)
+    for idx_a2 in range(len(alpha2)):
+        axs[0, idx_a2].set_xlabel(f"{np.round(alpha2[idx_a2], 2)}", fontsize=15)
+
+    fig.text(-0.01, 0.5, "Alpha 1", va="center", rotation="vertical", fontsize=20)
+    fig.text(0.5, -0.01, "Alpha 2", ha="center", fontsize=20)
+    fig.tight_layout()
+    plt.savefig(filename, bbox_inches="tight")
+
+
+def _rqa_comp(X):
+    # to install this on linux: pip install pocl-binary-distribution
+    from pyrqa.time_series import TimeSeries
+    from pyrqa.settings import Settings
+    from pyrqa.analysis_type import Classic
+    from pyrqa.neighbourhood import FixedRadius
+    from pyrqa.metric import EuclideanMetric
+    from pyrqa.computation import RQAComputation
+
+    time_series = TimeSeries(X.T, embedding_dimension=2, time_delay=1)
+    settings = Settings(
+        time_series,
+        analysis_type=Classic,
+        neighbourhood=FixedRadius(0.5),
+        similarity_measure=EuclideanMetric,
+        theiler_corrector=1,
+    )
+    computation = RQAComputation.create(settings, verbose=False)
+    return computation.run()
+
+
+def plot_rqa(path, filename, frac=0.2, min_rr=0.3):
+    """Plot recurence data with pyrqa."""
+    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+
+    rr = np.empty([len(alpha1), len(alpha2)])
+    det = np.empty([len(alpha1), len(alpha2)])
+    div = np.empty([len(alpha1), len(alpha2)])
+    lam = np.empty([len(alpha1), len(alpha2)])
+    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
+        result = mod(results[i][0].y)
+        rqa_res = _rqa_comp(result[:, int(np.shape(result)[1] * frac) :])
+        rr[idx_a1, idx_a2] = rqa_res.recurrence_rate
+        det[idx_a1, idx_a2] = rqa_res.determinism
+        div[idx_a1, idx_a2] = rqa_res.divergence
+        lam[idx_a1, idx_a2] = rqa_res.laminarity
+
+    fig, axs = plt.subplots(2, 2)
+    extent = (alpha2[0], alpha2[-1], alpha1[0], alpha1[-1])
+
+    # mask stationary state
+    mask = rr > min_rr
+
+    rr[mask] = np.nan
+    cm = axs[0, 0].imshow(rr, origin="lower", extent=extent, aspect="auto")
+    axs[0, 0].set_title("Recurrence rate")
+    plt.colorbar(cm, ax=axs[0, 0])
+
+    det[mask] = np.nan
+    cm = axs[0, 1].imshow(det, origin="lower", extent=extent, aspect="auto")
+    plt.colorbar(cm, ax=axs[0, 1])
+    axs[0, 1].set_title("Determinism")
+
+    div[mask] = np.nan
+    cm = axs[1, 0].imshow(div, origin="lower", extent=extent, aspect="auto")
+    plt.colorbar(cm, ax=axs[1, 0])
+    axs[1, 0].set_title("Divergence")
+
+    lam[mask] = np.nan
+    cm = axs[1, 1].imshow(lam, origin="lower", extent=extent, aspect="auto")
+    plt.colorbar(cm, ax=axs[1, 1])
+    axs[1, 1].set_title("Laminarity")
 
     fig.tight_layout()
 

@@ -7,11 +7,16 @@ from scipy.linalg import null_space
 # from utils import *
 
 
+def mod(x):
+    """Apply mod to be in [-pi, pi]"""
+    return np.round(x + np.pi, 2) % (2 * np.pi) - np.pi
+
+
 def plot_node_kuramoto(node_results):
     """Basic plot for node kuramoto."""
     plt.figure(figsize=(10, 5))
     plt.imshow(
-        np.round(node_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
+        mod(node_results.y),
         aspect="auto",
         cmap="twilight_shifted",
         extent=(node_results.t[0], node_results.t[-1], 0, len(node_results.y)),
@@ -25,7 +30,7 @@ def plot_node_kuramoto(node_results):
 def plot_edge_kuramoto(edge_results):
     """Basic plot for edge kuramoto."""
     plt.imshow(
-        np.round(edge_results.y + np.pi, 2) % (2 * np.pi) - np.pi,
+        mod(edge_results.y),
         origin="lower",
         aspect="auto",
         cmap="twilight_shifted",
