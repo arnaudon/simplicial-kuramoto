@@ -15,13 +15,13 @@ def neg(matrix):
     """Return negative part of matrix."""
     _matrix = matrix.copy()
     _matrix[_matrix > 0] = 0
-    return _matrix
+    return -_matrix
 
 
 class SimplicialComplex:
     """Class representing a simplicial complex."""
 
-    def __init__(self, graph=None, faces=None, no_faces=False, verbose=False, face_weights=None):
+    def __init__(self, graph=None, faces=None, no_faces=False, face_weights=None):
         """Initialise the class.
 
         Args:
@@ -51,22 +51,23 @@ class SimplicialComplex:
         self._V1 = None
         self._V2 = None
         self._lifted_N0 = None
-        self._lifted_N0sp = None
+        self._lifted_N0sn = None
         self._lifted_N1 = None
-        self._lifted_N1sp = None
+        self._lifted_N1sn = None
         self._lifted_L0 = None
         self._lifted_L1 = None
 
         self.set_lexicographic()
-        self.set_faces(faces, no_faces=no_faces, verbose=verbose)
+        self.no_faces = no_faces
+        self.set_faces(faces)
         if face_weights is None:
             self.face_weights = np.ones(self.n_faces)
         else:
             self.face_weights = face_weights
 
-    def set_faces(self, faces=None, no_faces=False, verbose=True):
+    def set_faces(self, faces=None, no_faces=False):
         """Set faces from list of triangles if provided, or all triangles."""
-        if no_faces:
+        if self.no_faces:
             self.faces = None
             self.n_faces = 0
         elif faces is None:
@@ -76,9 +77,6 @@ class SimplicialComplex:
         else:
             self.faces = faces
             self.n_faces = len(self.faces)
-
-        if verbose:
-            print(f"We created {self.n_faces} faces")
 
     def set_lexicographic(self):
         """Set orientation of edges in lexicographic order."""
@@ -107,11 +105,13 @@ class SimplicialComplex:
         self._V1 = None
         self._V2 = None
         self._lifted_N0 = None
-        self._lifted_N0sp = None
+        self._lifted_N0sn = None
         self._lifted_N1 = None
-        self._lifted_N1sp = None
+        self._lifted_N1sn = None
         self._lifted_L0 = None
         self._lifted_L1 = None
+
+        self.set_faces(self.faces)
 
     @property
     def W0(self):
@@ -140,7 +140,6 @@ class SimplicialComplex:
         """Create face weight matrix."""
         if self._W2 is None:
             if self.faces is not None:
-                # print(self.face_weights)
                 self._W2 = sc.sparse.spdiags(self.face_weights, 0, self.n_faces, self.n_faces)
         return self._W2
 
@@ -155,18 +154,14 @@ class SimplicialComplex:
     def B0_p(self):
         """Create the positive part of incidence matrices."""
         if self._B0_p is None:
-            temp = self.B0.copy()
-            temp[temp < 0] = 0
-            self._B0_p = temp
+            self._B0_p = pos(self.B0)
         return self._B0_p
 
     @property
     def B0_n(self):
         """Create the negative part of incidence matrices."""
         if self._B0_n is None:
-            temp = self.B0.copy()
-            temp[temp > 0] = 0
-            self._B0_n = np.negative(temp)
+            self._B0_n = neg(self.B0)
         return self._B0_n
 
     @property
@@ -262,17 +257,17 @@ class SimplicialComplex:
         return self._liftted_N0
 
     @property
-    def lifted_N0sp(self):
+    def lifted_N0sn(self):
         """Create lifted version of incidence matrices."""
-        if self._lifted_N0sp is None:
-            self._liftted_N0sp = pos(self.N0s.dot(self.V1.T))
-        return self._liftted_N0sp
+        if self._lifted_N0sn is None:
+            self._liftted_N0sn = neg(self.N0s.dot(self.V1.T))
+        return self._liftted_N0sn
 
     @property
     def lifted_L0(self):
         """Get lifted node laplacian."""
         if self._lifted_L0 is None:
-            self._lifted_L0 = self.lifted_N0sp.dot(self.lifted_N0)
+            self._lifted_L0 = self.lifted_N0sn.dot(self.lifted_N0)
         return self._lifted_L0
 
     @property
@@ -283,11 +278,11 @@ class SimplicialComplex:
         return self._liftted_N1
 
     @property
-    def lifted_N1sp(self):
+    def lifted_N1sn(self):
         """Create lifted version of incidence matrices."""
-        if self._lifted_N1sp is None:
-            self._liftted_N1sp = pos(self.N1s.dot(self.V2.T))
-        return self._liftted_N1sp
+        if self._lifted_N1sn is None:
+            self._liftted_N1sn = neg(self.N1s.dot(self.V2.T))
+        return self._liftted_N1sn
 
     @property
     def lifted_L1(self):
@@ -296,5 +291,5 @@ class SimplicialComplex:
             self._lifted_L1 = self.N0.dot(self.N0s)
 
             if self.W2 is not None:
-                self._lifted_L1 += self.lifted_N1sp.dot(self.lifted_N1)
+                self._lifted_L1 += self.lifted_N1sn.dot(self.lifted_N1)
         return self._lifted_L1

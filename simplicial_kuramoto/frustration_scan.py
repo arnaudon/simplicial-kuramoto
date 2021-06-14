@@ -1,69 +1,24 @@
 """Tools to scan frustration parameters."""
-import pandas as pd
-import logging
-import networkx as nx
-from functools import partial
 import itertools
+import logging
 import os
-
-from scipy.spatial import distance
-import numpy as np
-from tqdm import tqdm
 import pickle
-import matplotlib.pyplot as plt
-
+from functools import partial
 from multiprocessing import Pool
 
-from simplicial_kuramoto.integrators import integrate_edge_kuramoto
-from simplicial_kuramoto.chimera_measures import (
-    module_order_parameter,
-    module_gradient_parameter,
-    shanahan_indices,
-    coalition_entropy,
-)
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy as sc
+from scipy.spatial import distance
+from tqdm import tqdm
 
+from simplicial_kuramoto.integrators import integrate_edge_kuramoto
 from simplicial_kuramoto.plotting import mod
 
 L = logging.getLogger(__name__)
 
 
-def scan_frustration_parameters(
-    simplicial_complex,
-    alpha1=np.linspace(0, np.pi, 5),
-    alpha2=np.linspace(0, np.pi, 5),
-    repeats=20,
-    n_workers=4,
-    t_max=100,
-    n_t=1000,
-    save=True,
-    folder="./results/",
-    filename="results.pkl",
-    initial_phase=None,
-):
-
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    parameter_combinations = list(itertools.product(alpha1, alpha2))
-
-    results = compute_scan(
-        simplicial_complex,
-        parameter_combinations,
-        n_workers=n_workers,
-        repeats=repeats,
-        t_max=t_max,
-        n_t=n_t,
-        initial_phase=initial_phase,
-    )
-
-    if save:
-        with open(folder + filename, "wb") as f:
-            pickle.dump([simplicial_complex, results, alpha1, alpha2], f)
-
-    return results
-
-
-def integrate_kuramoto(
+def _integrate_several_kuramoto(
     parameters, simplicial_complex, repeats, t_max, n_t, initial_phase=None, seed=42
 ):
     """ integrate kuramoto """
@@ -92,23 +47,32 @@ def integrate_kuramoto(
     return edge_results
 
 
-def compute_scan(
+def scan_frustration_parameters(
     simplicial_complex,
-    parameter_combinations,
-    n_workers=1,
-    repeats=20,
-    t_max=100,
+    alpha1=np.linspace(0, np.pi, 10),
+    alpha2=np.linspace(0, 2.0, 10),
+    repeats=1,
+    n_workers=4,
+    t_max=200,
     n_t=1000,
+    save=True,
+    folder="./results/",
+    filename="results.pkl",
     initial_phase=None,
 ):
-    """Compute scan"""
+    """Scan frustration parameters alpha_1 and alpha_2 and save phases."""
+
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    parameter_combinations = list(itertools.product(alpha1, alpha2))
 
     with Pool(n_workers) as pool:
-        return list(
+        results = list(
             tqdm(
                 pool.imap(
                     partial(
-                        integrate_kuramoto,
+                        _integrate_several_kuramoto,
                         simplicial_complex=simplicial_complex,
                         repeats=repeats,
                         t_max=t_max,
@@ -121,8 +85,15 @@ def compute_scan(
             )
         )
 
+    if save:
+        with open(folder + filename, "wb") as f:
+            pickle.dump([simplicial_complex, results, alpha1, alpha2], f)
+
+    return results
+
 
 def plot_phases(path, filename):
+    """From result of frustration scan, plot a grid of phase trajectories."""
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
 
     fig, axs = plt.subplots(len(alpha1), len(alpha2), figsize=(len(alpha2), len(alpha1)))
@@ -131,7 +102,7 @@ def plot_phases(path, filename):
         plt.sca(axs[idx_a1, idx_a2])
         result = results[i][0]
         plt.imshow(
-            np.round(result.y + np.pi, 2) % (2 * np.pi) - np.pi,
+            mod(result.y),
             origin="lower",
             aspect="auto",
             cmap="twilight_shifted",
@@ -153,93 +124,99 @@ def plot_phases(path, filename):
     plt.savefig(filename, bbox_inches="tight")
 
 
-def shanahan_metrics(results, alpha1, alpha2, edge_community_assignment):
-
-    gms_matrix = pd.DataFrame()
-    chi_matrix = pd.DataFrame()
-    ce_matrix = pd.DataFrame()
-    ceg_matrix = pd.DataFrame()
-
-    for i, (a1, a2) in enumerate(itertools.product(alpha1, alpha2)):
-
-        gms_ = []
-        chi_ = []
-        ce_ = []
-        ceg_ = []
-
-        for result in results[i]:
-            op, global_order_parameter = module_order_parameter(result.y, edge_community_assignment)
-            gms, chi = shanahan_indices(op)
-            gop, phase_gradient = module_gradient_parameter(result.y, edge_community_assignment)
-
-            gms_.append(gms)
-            chi_.append(chi)
-            ce_.append(coalition_entropy(op))
-            ceg_.append(coalition_entropy(gop))
-
-        gms_matrix.loc[a1, a2] = np.mean(gms_)
-        chi_matrix.loc[a1, a2] = np.mean(chi_)
-        ce_matrix.loc[a1, a2] = np.mean(ce_)
-        ceg_matrix.loc[a1, a2] = np.mean(ceg_)
-
-    return gms_matrix, chi_matrix, ce_matrix, ceg_matrix
+def get_subspaces(Gsc):
+    """"Get grad, curl and harm subspaces."""
+    grad_subspace = sc.linalg.orth(Gsc.N0.todense())
+    curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
+    harm_subspace = sc.linalg.null_space(Gsc.L1.todense())
+    return grad_subspace, curl_subspace, harm_subspace
 
 
-def plot_measures(path, filename, marker=None):
+def proj_subspace(vec, subspace):
+    """Project a list of vecs to a subspace."""
+    proj = np.zeros_like(vec)
+    for direction in subspace.T:
+        proj += np.outer(vec.dot(direction), direction)
+    return np.linalg.norm(proj, axis=1)
+
+
+def get_projection_slope(Gsc, res, n_min=0):
+
+    grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
+    time = res.t[n_min:]
+
+    grad = proj_subspace(res.y.T, grad_subspace)[n_min:]
+    grad_fit = np.polyfit(time, grad, 1)
+
+    grad -= grad_fit[0] * time + grad_fit[1]
+    grad -= np.min(grad)
+
+    curl = proj_subspace(res.y.T, curl_subspace)[n_min:]
+    curl_fit = np.polyfit(time, curl, 1)
+    curl -= curl_fit[0] * time + curl_fit[1]
+    curl -= np.min(curl)
+
+    harm = proj_subspace(res.y.T, harm_subspace)[n_min:]
+    harm_fit = np.polyfit(time, harm, 1)
+    harm -= harm_fit[0] * time + harm_fit[1]
+    harm -= np.min(harm)
+
+    return grad, curl, harm, grad_fit[0], curl_fit[0], harm_fit[0]
+
+
+def plot_projections(path, filename, frac=0.2, eps=1e-2):
+    """Plot grad, curl and harm subspaces projection measures."""
 
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
-    edge_community_assignment = np.array(
-        list(nx.get_edge_attributes(Gsc.graph, "edge_com").values())
-    )
 
-    gms, chi, ce, ceg = shanahan_metrics(results, alpha1, alpha2, edge_community_assignment)
+    grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
-    fig, axs = plt.subplots(2, 2)
-    extents = [gms.index[0], gms.index[-1], gms.columns[0], gms.columns[-1]]
+    grad = np.empty([len(alpha1), len(alpha2)])
+    curl = np.empty([len(alpha1), len(alpha2)])
+    harm = np.empty([len(alpha1), len(alpha2)])
+    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
 
-    cm = axs[0, 0].imshow(gms.to_numpy(), aspect="auto", extent=extents, origin="lower")
-    axs[0, 0].set_title("Global metastability")
-    plt.colorbar(cm, ax=axs[0, 0])
-    if marker is not None:
-        axs[0, 0].scatter(marker[0], marker[1], s=100, c="red", marker="o")
+        result = results[i][0].y
+        n_min = int(np.shape(result)[1] * frac)
+        result = result[:, n_min:]
 
-    cm = axs[0, 1].imshow(chi.to_numpy(), aspect="auto", extent=extents, origin="lower")
-    axs[0, 1].set_title("Chimeraness")
-    plt.colorbar(cm, ax=axs[0, 1])
-    if marker is not None:
-        axs[0, 1].scatter(marker[0], marker[1], s=100, c="red", marker="o")
+        _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
+            Gsc, results[i][0], n_min
+        )
+        grad[idx_a1, idx_a2] = grad_slope if np.std(_grad) > eps else np.nan
+        curl[idx_a1, idx_a2] = curl_slope if np.std(_curl) > eps else np.nan
+        harm[idx_a1, idx_a2] = harm_slope if np.std(_harm) > eps else np.nan
 
-    cm = axs[1, 0].imshow(ce.to_numpy(), aspect="auto", extent=extents, origin="lower")
-    axs[1, 0].set_title("Coalition Entropy")
-    plt.colorbar(cm, ax=axs[1, 0])
-    if marker is not None:
-        axs[1, 0].scatter(marker[0], marker[1], s=100, c="red", marker="o")
+    fig = plt.figure(figsize=(4, 6))
+    gs = fig.add_gridspec(3, hspace=0)
+    axs = gs.subplots(sharex=True, sharey=True)
+    step1 = alpha1[1] - alpha1[0]
+    step2 = alpha1[1] - alpha1[0]
+    extent = (alpha2[0]-step2, alpha2[-1]-step2, alpha1[0]-step1, alpha1[-1]-step1)
 
-    cm = axs[1, 1].imshow(ceg.to_numpy(), aspect="auto", extent=extents, origin="lower")
-    axs[1, 1].set_title("Gradient coalition entropy")
-    plt.colorbar(cm, ax=axs[1, 1])
-    if marker is not None:
-        axs[1, 1].scatter(marker[0], marker[1], s=100, c="red", marker="o")
+    plt.sca(axs[0])
+    plt.imshow(grad, origin="lower", extent=extent, vmin=0)
+    plt.axis(extent)
+    plt.axhline(1, ls='--', c='k', lw=0.5)
+    plt.ylabel(r'$\alpha_1$')
+    plt.colorbar(label="Gradient slope", fraction=0.02)
+
+    plt.sca(axs[1])
+    plt.imshow(curl, origin="lower", extent=extent, vmin=0)
+    plt.ylabel(r'$\alpha_1$')
+    plt.axhline(1, ls='--', c='k', lw=0.5)
+    plt.axis(extent)
+    plt.colorbar(label="Curl slope", fraction=0.02)
+
+    plt.sca(axs[2])
+    plt.imshow(harm, origin="lower", extent=extent, vmin=0)
+    plt.axis(extent)
+    plt.axhline(1, ls='--', c='k', lw=0.5)
+    plt.ylabel(r'$\alpha_1$')
+    plt.xlabel(r'$\alpha_2$')
+    plt.colorbar(label="Harmonic slope", fraction=0.02)
 
     fig.tight_layout()
-
-    fig.text(0.5, 0.0, "Alpha 2", ha="center")
-    fig.text(0.0, 0.5, "Alpha 1", va="center", rotation="vertical")
-
-    plt.savefig(filename, bbox_inches="tight")
-
-
-def plot_stationarity(path, filename, frac=0.2):
-    """Plot mean of variance of second half of simulation to see stationary state."""
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
-
-    var = np.empty([len(alpha1), len(alpha2)])
-    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
-        result = mod(results[i][0].y)
-        var[idx_a1, idx_a2] = np.mean(np.var(result[:, int(np.shape(result)[1] * frac) :], axis=1))
-    plt.figure()
-    plt.imshow(var, origin="lower", extent=(alpha2[0], alpha2[-1], alpha1[0], alpha1[-1]), vmin=0)
-    plt.colorbar()
     plt.savefig(filename, bbox_inches="tight")
 
 
@@ -289,47 +266,34 @@ def plot_recurences(path, filename, eps=0.1, steps=10):
 
 
 def _rqa_comp(X):
-    # to install this on linux: pip install pocl-binary-distribution
-    from pyrqa.time_series import TimeSeries
-    from pyrqa.settings import Settings
-    from pyrqa.analysis_type import Classic
-    from pyrqa.neighbourhood import FixedRadius
-    from pyrqa.metric import EuclideanMetric
-    from pyrqa.computation import RQAComputation
+    """Compute rqa with pyunicorn."""
+    from pyunicorn.timeseries.recurrence_plot import RecurrencePlot
 
-    time_series = TimeSeries(X.T, embedding_dimension=2, time_delay=1)
-    settings = Settings(
-        time_series,
-        analysis_type=Classic,
-        neighbourhood=FixedRadius(0.5),
-        similarity_measure=EuclideanMetric,
-        theiler_corrector=1,
-    )
-    computation = RQAComputation.create(settings, verbose=False)
-    return computation.run()
+    return RecurrencePlot(X.T, recurrence_rate=0.1, metric="supremum", silence_level=2)
 
 
-def plot_rqa(path, filename, frac=0.2, min_rr=0.3):
+def plot_rqa(path, filename, frac=0.2, min_rr=0.9, n_steps=5):
     """Plot recurence data with pyrqa."""
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
 
     rr = np.empty([len(alpha1), len(alpha2)])
     det = np.empty([len(alpha1), len(alpha2)])
-    div = np.empty([len(alpha1), len(alpha2)])
+    diag = np.empty([len(alpha1), len(alpha2)])
     lam = np.empty([len(alpha1), len(alpha2)])
-    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
-        result = mod(results[i][0].y)
+    pairs = list(itertools.product(range(len(alpha1)), range(len(alpha2))))
+    for i, (idx_a1, idx_a2) in tqdm(enumerate(pairs), total=len(pairs)):
+        result = mod(results[i][0].y)[:, ::n_steps]
         rqa_res = _rqa_comp(result[:, int(np.shape(result)[1] * frac) :])
-        rr[idx_a1, idx_a2] = rqa_res.recurrence_rate
-        det[idx_a1, idx_a2] = rqa_res.determinism
-        div[idx_a1, idx_a2] = rqa_res.divergence
-        lam[idx_a1, idx_a2] = rqa_res.laminarity
+        rr[idx_a1, idx_a2] = rqa_res.recurrence_rate()
+        det[idx_a1, idx_a2] = rqa_res.determinism()
+        diag[idx_a1, idx_a2] = rqa_res.average_diaglength()
+        lam[idx_a1, idx_a2] = rqa_res.laminarity()
 
     fig, axs = plt.subplots(2, 2)
     extent = (alpha2[0], alpha2[-1], alpha1[0], alpha1[-1])
 
     # mask stationary state
-    mask = rr > min_rr
+    mask = rr < 0.001  # min_rr
 
     rr[mask] = np.nan
     cm = axs[0, 0].imshow(rr, origin="lower", extent=extent, aspect="auto")
@@ -341,10 +305,10 @@ def plot_rqa(path, filename, frac=0.2, min_rr=0.3):
     plt.colorbar(cm, ax=axs[0, 1])
     axs[0, 1].set_title("Determinism")
 
-    div[mask] = np.nan
-    cm = axs[1, 0].imshow(div, origin="lower", extent=extent, aspect="auto")
+    diag[mask] = np.nan
+    cm = axs[1, 0].imshow(diag, origin="lower", extent=extent, aspect="auto")
     plt.colorbar(cm, ax=axs[1, 0])
-    axs[1, 0].set_title("Divergence")
+    axs[1, 0].set_title("Average diagonal length")
 
     lam[mask] = np.nan
     cm = axs[1, 1].imshow(lam, origin="lower", extent=extent, aspect="auto")

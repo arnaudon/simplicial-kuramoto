@@ -5,18 +5,14 @@ import numpy as np
 from scipy.integrate import solve_ivp
 
 
-def node_simplicial_kuramoto(
-    time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0
-):
+def node_simplicial_kuramoto(time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0):
     """Node simplicial kuramoto, or classical Kuramoto."""
-    return -alpha_0 - simplicial_complex.lifted_N0sp.dot(
+    return -alpha_0 - simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
 
 
-def integrate_node_kuramoto(
-    simplicial_complex, initial_phase, t_max, n_t, alpha_0=0, alpha_1=0
-):
+def integrate_node_kuramoto(simplicial_complex, initial_phase, t_max, n_t, alpha_0=0, alpha_1=0):
     """Integrate the node Kuramoto model."""
     return solve_ivp(
         partial(
@@ -34,21 +30,17 @@ def integrate_node_kuramoto(
     )
 
 
-def edge_simplicial_kuramoto(
-    time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0
-):
+def edge_simplicial_kuramoto(time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0):
     """Edge simplicial kuramoto"""
     rhs = alpha_1 + simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
     if simplicial_complex.W2 is not None:
-        rhs += simplicial_complex.lifted_N1sp.dot(
+        rhs += simplicial_complex.lifted_N1sn.dot(
             np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
         )
     return -rhs
 
 
-def integrate_edge_kuramoto(
-    simplicial_complex, initial_phase, t_max, n_t, alpha_1=0, alpha_2=0
-):
+def integrate_edge_kuramoto(simplicial_complex, initial_phase, t_max, n_t, alpha_1=0, alpha_2=0):
     """Integrate the edge Kuramoto model."""
 
     rhs = partial(
