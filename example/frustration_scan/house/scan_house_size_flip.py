@@ -21,11 +21,11 @@ def my_house(size):
 
     G.add_edge(i + 3, 1, weight=1)
     if size == 3:
-        Gsc = SimplicialComplex(graph=G, faces=[[0,1,2]])
+        Gsc = SimplicialComplex(graph=G, faces=[[0, 1, 2]])
     else:
         Gsc = SimplicialComplex(graph=G)
 
-    Gsc.flip_edge_orientation([0, size + 1])
+    Gsc.flip_edge_orientation(1)
     return Gsc
 
 
@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
         scan_frustration_parameters(
             Gsc,
-            filename=f"house_{size}.pkl",
+            filename=f"house_{size}_flip.pkl",
             alpha1=alpha1,
             alpha2=alpha2,
             repeats=n_repeats,

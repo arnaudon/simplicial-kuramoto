@@ -7,7 +7,7 @@ if __name__ == "__main__":
     folder = "./results/"
     figure_folder = "figures/"
 
-    sizes = [3, 4, 5, 6, 7]
+    sizes = [3, 4, 5, 6, 7, 8, 9, 10]
     for size in sizes:
         Gsc = my_house(size)
         plt.figure()
@@ -19,5 +19,8 @@ if __name__ == "__main__":
         filename = figure_folder + f"house_{size}_proj.pdf"
         plot_projections(path, filename)
         plt.close()
-        # filename = figure_folder + f"house_{size}_rqa.pdf"
-        # plot_rqa(path, filename)
+
+        path = folder + f"house_{size}_flip.pkl"
+        filename = figure_folder + f"house_{size}_flip_proj.pdf"
+        plot_projections(path, filename)
+        plt.close()
