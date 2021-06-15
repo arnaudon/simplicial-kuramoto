@@ -127,7 +127,11 @@ def plot_phases(path, filename):
 def get_subspaces(Gsc):
     """"Get grad, curl and harm subspaces."""
     grad_subspace = sc.linalg.orth(Gsc.N0.todense())
-    curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
+    try:
+        curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
+    except (ValueError, AttributeError):
+        curl_subspace = np.zeros([len(Gsc.graph.edges), 0])
+
     harm_subspace = sc.linalg.null_space(Gsc.L1.todense())
     return grad_subspace, curl_subspace, harm_subspace
 
@@ -141,6 +145,7 @@ def proj_subspace(vec, subspace):
 
 
 def get_projection_slope(Gsc, res, n_min=0):
+    """Project result on subspaces."""
 
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
     time = res.t[n_min:]
@@ -164,7 +169,7 @@ def get_projection_slope(Gsc, res, n_min=0):
     return grad, curl, harm, grad_fit[0], curl_fit[0], harm_fit[0]
 
 
-def plot_projections(path, filename, frac=0.2, eps=1e-2):
+def plot_projections(path, filename, frac=0.2, eps=1e-3):
     """Plot grad, curl and harm subspaces projection measures."""
 
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
@@ -183,40 +188,48 @@ def plot_projections(path, filename, frac=0.2, eps=1e-2):
         _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
             Gsc, results[i][0], n_min
         )
-        grad[idx_a1, idx_a2] = grad_slope if np.std(_grad) > eps else np.nan
-        curl[idx_a1, idx_a2] = curl_slope if np.std(_curl) > eps else np.nan
-        harm[idx_a1, idx_a2] = harm_slope if np.std(_harm) > eps else np.nan
+        grad[idx_a1, idx_a2] = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
+        curl[idx_a1, idx_a2] = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
+        harm[idx_a1, idx_a2] = harm_slope if np.std(_harm) > eps or harm_slope > eps else np.nan
 
     fig = plt.figure(figsize=(4, 6))
+
+    grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
+    plt.suptitle(
+        f"dim(grad) = {np.shape(grad_subspace)[1]}, dim(curl) = {np.shape(curl_subspace)[1]}, dim(harm) = {np.shape(harm_subspace)[1]}",
+        fontsize=9,
+    )
+
     gs = fig.add_gridspec(3, hspace=0)
     axs = gs.subplots(sharex=True, sharey=True)
     step1 = alpha1[1] - alpha1[0]
     step2 = alpha1[1] - alpha1[0]
-    extent = (alpha2[0]-step2, alpha2[-1]-step2, alpha1[0]-step1, alpha1[-1]-step1)
+    extent = (alpha2[0] - step2, alpha2[-1] - step2, alpha1[0] - step1, alpha1[-1] - step1)
 
     plt.sca(axs[0])
     plt.imshow(grad, origin="lower", extent=extent, vmin=0)
     plt.axis(extent)
-    plt.axhline(1, ls='--', c='k', lw=0.5)
-    plt.ylabel(r'$\alpha_1$')
+    plt.axhline(1, ls="--", c="k", lw=0.5)
+    plt.ylabel(r"$\alpha_1$")
     plt.colorbar(label="Gradient slope", fraction=0.02)
 
     plt.sca(axs[1])
     plt.imshow(curl, origin="lower", extent=extent, vmin=0)
-    plt.ylabel(r'$\alpha_1$')
-    plt.axhline(1, ls='--', c='k', lw=0.5)
+    plt.ylabel(r"$\alpha_1$")
+    plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.axis(extent)
     plt.colorbar(label="Curl slope", fraction=0.02)
 
     plt.sca(axs[2])
     plt.imshow(harm, origin="lower", extent=extent, vmin=0)
     plt.axis(extent)
-    plt.axhline(1, ls='--', c='k', lw=0.5)
-    plt.ylabel(r'$\alpha_1$')
-    plt.xlabel(r'$\alpha_2$')
+    plt.axhline(1, ls="--", c="k", lw=0.5)
+    plt.ylabel(r"$\alpha_1$")
+    plt.xlabel(r"$\alpha_2$")
     plt.colorbar(label="Harmonic slope", fraction=0.02)
 
     fig.tight_layout()
+
     plt.savefig(filename, bbox_inches="tight")
 
 
