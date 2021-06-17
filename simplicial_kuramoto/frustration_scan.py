@@ -1,4 +1,6 @@
 """Tools to scan frustration parameters."""
+import multiprocessing
+
 import itertools
 import logging
 import os
@@ -144,15 +146,16 @@ def proj_subspace(vec, subspace):
     return np.linalg.norm(proj, axis=1)
 
 
-def get_projection_slope(Gsc, res, n_min=0):
+def get_projection_slope(
+    Gsc, res, grad_subspace=None, curl_subspace=None, harm_subspace=None, n_min=0
+):
     """Project result on subspaces."""
-
-    grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
+    if grad_subspace is None:
+        grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
     time = res.t[n_min:]
 
     grad = proj_subspace(res.y.T, grad_subspace)[n_min:]
     grad_fit = np.polyfit(time, grad, 1)
-
     grad -= grad_fit[0] * time + grad_fit[1]
     grad -= np.min(grad)
 
@@ -169,28 +172,46 @@ def get_projection_slope(Gsc, res, n_min=0):
     return grad, curl, harm, grad_fit[0], curl_fit[0], harm_fit[0]
 
 
-def plot_projections(path, filename, frac=0.2, eps=1e-3):
+def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc):
+    res = result[0].y
+    n_min = int(np.shape(res)[1] * frac)
+    res = res[:, n_min:]
+    _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
+        Gsc, result[0], grad_subspace, curl_subspace, harm_subspace, n_min
+    )
+
+    grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
+    curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
+    harm = harm_slope if np.std(_harm) > eps or harm_slope > eps else np.nan
+    return grad, curl, harm
+
+
+def plot_projections(path, filename, frac=0.2, eps=1e-3, n_workers=4):
     """Plot grad, curl and harm subspaces projection measures."""
 
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
-
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
     grad = np.empty([len(alpha1), len(alpha2)])
     curl = np.empty([len(alpha1), len(alpha2)])
     harm = np.empty([len(alpha1), len(alpha2)])
-    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
+    pairs = list(itertools.product(range(len(alpha1)), range(len(alpha2))))
 
-        result = results[i][0].y
-        n_min = int(np.shape(result)[1] * frac)
-        result = result[:, n_min:]
-
-        _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
-            Gsc, results[i][0], n_min
-        )
-        grad[idx_a1, idx_a2] = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
-        curl[idx_a1, idx_a2] = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
-        harm[idx_a1, idx_a2] = harm_slope if np.std(_harm) > eps or harm_slope > eps else np.nan
+    _eval = partial(
+        _get_projections,
+        frac=frac,
+        eps=eps,
+        grad_subspace=grad_subspace,
+        curl_subspace=curl_subspace,
+        harm_subspace=harm_subspace,
+        Gsc=Gsc,
+    )
+    with multiprocessing.Pool(n_workers) as pool:
+        _res = pool.imap(_eval, results, chunksize=max(1, int(0.1 * len(results) / n_workers)))
+        for (idx_a1, idx_a2), (_grad, _curl, _harm) in tqdm(zip(pairs, _res), total=len(pairs)):
+            grad[idx_a1, idx_a2] = _grad
+            curl[idx_a1, idx_a2] = _curl
+            harm[idx_a1, idx_a2] = _harm
 
     fig = plt.figure(figsize=(4, 6))
 

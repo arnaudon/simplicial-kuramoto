@@ -1,6 +1,8 @@
 """Graph generation."""
 import networkx as nx
+import itertools
 import numpy as np
+from scipy import spatial
 
 
 def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
@@ -33,9 +35,7 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                 source = np.random.randint(i * Nn + 1, (i + 1) * Nn, Nie).tolist()
                 sink = np.random.randint(j * (Nn + 1) + 1, (j + 1) * Nn, Nie).tolist()
                 for e in range(Nie):
-                    G.add_edge(
-                        source[e], sink[e], weight=inter_weight, community=str((i, j))
-                    )
+                    G.add_edge(source[e], sink[e], weight=inter_weight, community=str((i, j)))
 
     else:
         Neig = np.linspace(1, Nn, Nn).astype(int)
@@ -60,3 +60,50 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                         )
     nx.set_node_attributes(G, node_assign, "community")
     return G
+
+
+def delaunay_with_holes(n_points, centres, radii, n_nodes_hole=20, points=None):
+    """Create a delanay mesh with holes."""
+    if points is None:
+        points = np.random.uniform(0, 1, [n_points, 2])
+
+    x = np.linspace(0, 2 * np.pi, n_nodes_hole + 1)[:-1]
+    idx_inside = []
+    for i in range(len(centres)):
+        points = [p for p in points if np.linalg.norm(p - centres[i]) > radii[i]]
+    for i in range(len(centres)):
+        points += list(
+            np.vstack(
+                [
+                    centres[i][0] + radii[i] * np.sin(x),
+                    centres[i][1] + radii[i] * np.cos(x),
+                ]
+            ).T
+        )
+        idx_inside.append(np.arange(len(points) - n_nodes_hole, len(points)))
+    points = np.array(points)
+    tri = spatial.Delaunay(points)
+
+    edge_list = []
+    for t in tri.simplices:
+        for edge in itertools.combinations(t, 2):
+
+            # add edges not touching the hole
+            edge0 = any(edge[0] in idx_inside[i] for i in range(len(centres)))
+            edge1 = any(edge[1] in idx_inside[i] for i in range(len(centres)))
+            if not edge0 or not edge1:
+                edge_list.append(edge)
+
+            # add the edges in the boundary of holes
+            for i in range(len(centres)):
+                if edge[0] in idx_inside[i] and edge[1] in idx_inside[i]:
+                    if (
+                        np.linalg.norm(points[edge[0]] - points[edge[1]])
+                        < 2.0 * np.pi * radii[i] / n_nodes_hole
+                    ):
+                        edge_list.append(edge)
+
+    graph = nx.Graph()
+    graph.add_edges_from(edge_list)
+
+    return graph, points
