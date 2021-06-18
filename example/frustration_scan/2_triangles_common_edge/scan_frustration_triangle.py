@@ -18,11 +18,11 @@ if __name__ == "__main__":
     G.add_edge(2, 3, weight=1, edge_com=0)
     G.add_edge(1, 3, weight=1, edge_com=0)
 
-    alpha1 = np.linspace(0, np.pi, 100)
+    alpha1 = np.linspace(0, 2.2, 100)
     alpha2 = np.linspace(0, np.pi, 100)
     n_repeats = 1
-    t_max = 200
-    n_t = 1000
+    t_max = 100
+    n_t = 100
     n_workers = 80
 
     Gsc = SimplicialComplex(graph=G, no_faces=False)

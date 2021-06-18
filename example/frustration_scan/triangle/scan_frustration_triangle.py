@@ -17,12 +17,12 @@ if __name__ == "__main__":
     Gsc.flip_edge_orientation(1)
     #Gsc_noface.flip_edge_orientation(1)
 
-    alpha1 = np.linspace(0, 2.2, 70)
+    alpha1 = np.linspace(0, 2.2, 100)
     alpha2 = np.linspace(0, np.pi, 100)
     n_repeats = 1
-    t_max = 500
-    n_t = 1000
-    n_workers = 12
+    t_max = 100
+    n_t = 100
+    n_workers = 80
 
     """
     scan_frustration_parameters(

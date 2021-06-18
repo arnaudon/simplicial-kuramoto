@@ -26,7 +26,9 @@ def plot_phase_traj(Gsc, alpha_1, alpha_2, folder="figures_traj", t_max=50, min_
     result = res.y[:, n_min:]
     time = res.t[n_min:]
 
-    grad, curl, harm, grad_slope, curl_slope, harm_slope = get_projection_slope(Gsc, res, n_min)
+    grad, curl, harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
+        Gsc, res, n_min=n_min
+    )
 
     print(f"grad slope = {grad_slope}, curl slope = {curl_slope}")
 
