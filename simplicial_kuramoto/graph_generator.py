@@ -62,6 +62,24 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
     return G
 
 
+def ring_of_rings(num_rings, ring_size):
+
+    G = nx.Graph()
+    for i in range(num_rings):
+        gc = nx.generators.classic.circulant_graph(ring_size, [1])
+        edges = gc.edges()
+        for edge in edges:
+            edge_ = tuple([(i * ring_size) + x for x in edge])
+            G.add_edge(edge_[0], edge_[1], community=i)
+
+        G.add_edge(
+            i * ring_size + 1,
+            (i + 1) * ring_size % (num_rings * ring_size),
+            community=999,
+        )
+    return G
+
+
 def delaunay_with_holes(n_points, centres=None, radii=None, n_nodes_hole=20, points=None):
     """Create a delanay mesh with holes, if centres=None, no holes will be created."""
     if points is None:
