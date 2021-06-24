@@ -3,6 +3,7 @@ from simplicial_kuramoto.frustration_scan import (
     plot_recurences,
     plot_rqa,
     plot_projections,
+    plot_harmonic_order
 )
 
 
@@ -15,6 +16,8 @@ if __name__ == "__main__":
     # plot_phases(path, filename)
     filename = figure_folder + "phase_triangle_face_flip_proj.pdf"
     plot_projections(path, filename)
+    filename = figure_folder + "phase_triangle_face_flip_order.pdf"
+    plot_harmonic_order(path, filename)
     filename = figure_folder + "phase_triangle_face_flip_recurence.pdf"
     # plot_recurences(path, filename)
     filename = figure_folder + "phase_triangle_face_flip_rqa.pdf"

@@ -4,7 +4,33 @@ import matplotlib.pyplot as plt
 
 from simplicial_kuramoto import SimplicialComplex
 from simplicial_kuramoto.integrators import integrate_edge_kuramoto
-from simplicial_kuramoto.frustration_scan import get_projection_slope
+from simplicial_kuramoto.frustration_scan import get_projection_slope, get_subspaces, proj_subspace
+
+def get_projection_slope_custom(
+    Gsc, res, grad_subspace=None, curl_subspace=None, harm_subspace=None, n_min=0
+):
+    """Project result on subspaces."""
+    if grad_subspace is None:
+        grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
+    time = res.t[n_min:]
+
+    grad = proj_subspace(res.y.T, grad_subspace)[n_min:]
+    grad_fit = np.polyfit(time, grad, 1)
+    #grad -= grad_fit[0] * time + grad_fit[1]
+    #grad -= np.min(grad)
+
+    curl = proj_subspace(res.y.T, curl_subspace)[n_min:]
+    curl_fit = np.polyfit(time, curl, 1)
+    #curl -= curl_fit[0] * time + curl_fit[1]
+    #curl -= np.min(curl)
+
+    harm = proj_subspace(res.y.T, harm_subspace)[n_min:]
+    harm_fit = np.polyfit(time, harm, 1)
+    #harm -= harm_fit[0] * time + harm_fit[1]
+    #harm -= np.min(harm)
+
+    return grad, curl, harm, grad_fit, curl_fit, harm_fit
+
 
 
 def plot_phase_traj(Gsc, alpha_1, alpha_2, folder="figures_traj", t_max=50, min_s=1.0):
@@ -12,7 +38,7 @@ def plot_phase_traj(Gsc, alpha_1, alpha_2, folder="figures_traj", t_max=50, min_
     np.random.seed(42)
     initial_phase = np.random.random(Gsc.n_edges)
 
-    n_t = 500
+    n_t = 1000
     n_min = 100
 
     res = integrate_edge_kuramoto(
@@ -34,7 +60,8 @@ def plot_phase_traj(Gsc, alpha_1, alpha_2, folder="figures_traj", t_max=50, min_
 
     plt.figure(figsize=(4, 4))
 
-    plt.scatter(np.sin(result[0]), np.sin(result[2]), c=grad, s=10 * curl + min_s)
+    plt.plot(np.sin(result[0]), np.sin(result[2]), '-k') #, c=grad, s=10 * curl + min_s)
+    plt.plot(np.sin(result[0, ::10]), np.sin(result[2, ::10]), 'k+')#, c=grad, s=10 * curl + min_s)
     # plt.colorbar(label="gradient slope")
     plt.axis([-1.01, 1.01, -1.01, 1.01])
     plt.axis("equal")
@@ -45,9 +72,18 @@ def plot_phase_traj(Gsc, alpha_1, alpha_2, folder="figures_traj", t_max=50, min_
     )
     plt.close()
 
-    plt.figure()
+    grad, curl, harm, grad_slope, curl_slope, harm_slope = get_projection_slope_custom(
+        Gsc, res, n_min=0
+    )
+    time = res.t
+    plt.figure(figsize=(4, 3))
     plt.plot(time, grad, label="grad")
+    plt.plot(time, grad_slope[1] + time * grad_slope[0], c='k', ls='--')
     plt.plot(time, curl, label="curl")
+    plt.plot(time, curl_slope[1] + time * curl_slope[0], c='k', ls='--')
+    plt.xlabel('time')
+    plt.ylabel('projection')
+    plt.gca().set_xlim(time[0], time[-1])
     plt.legend(loc="best")
     plt.suptitle(f"alpha_1 = {alpha_1}, alpha2 = {alpha_2}")
     plt.savefig(
@@ -79,6 +115,7 @@ if __name__ == "__main__":
     alpha_2 = 2.5
     plot_phase_traj(Gsc, alpha_1, alpha_2, t_max=18, min_s=5)
 
-    for alpha_1 in np.linspace(1.193, 1.195, 20):
+    for alpha_1 in np.linspace(1.1938, 1.1940, 5):
+        print(alpha_1)
         alpha_2 = 1.5
         plot_phase_traj(Gsc, alpha_1, alpha_2, t_max=50, min_s=5, folder="figures_traj_scan")

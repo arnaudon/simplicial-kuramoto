@@ -7,7 +7,6 @@ if __name__ == "__main__":
     folder = "./results/"
     figure_folder = "figures/"
 
-
     sizes = [3, 4, 5, 6, 7, 8, 9, 10]
     for size in sizes:
         Gsc = make_loop(size)

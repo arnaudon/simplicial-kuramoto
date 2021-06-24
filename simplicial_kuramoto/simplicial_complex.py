@@ -15,7 +15,7 @@ def neg(matrix):
     """Return negative part of matrix."""
     _matrix = matrix.copy()
     _matrix[_matrix > 0] = 0
-    return -_matrix
+    return _matrix
 
 
 class SimplicialComplex:

@@ -36,7 +36,7 @@ if __name__ == "__main__":
     n_repeats = 1
     n_workers = 80
 
-    t_max = 100
+    t_max = 1000
     n_t = 100
 
     for size in sizes:
