@@ -80,7 +80,7 @@ def ring_of_rings(num_rings, ring_size):
     return G
 
 
-def delaunay_with_holes(n_points, centres=None, radii=None, n_nodes_hole=20, points=None):
+def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20, points=None):
     """Create a delanay mesh with holes, if centres=None, no holes will be created."""
     if points is None:
         points = np.random.uniform(0, 1, [n_points, 2])

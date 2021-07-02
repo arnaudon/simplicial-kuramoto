@@ -7,6 +7,7 @@ import os
 import pickle
 from functools import partial
 from multiprocessing import Pool
+import pandas as pd
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,22 +27,15 @@ def _integrate_several_kuramoto(
     repeats,
     t_max,
     n_t,
-    initial_phase=None,
-    seed=42,
     harmonic=False,
 ):
     """ integrate kuramoto """
-    np.random.seed(seed)
-
-    if initial_phase is not None:
-        repeats = 1
     if harmonic:
         grad_subspace, curl_subspace, harm_subspace = get_subspaces(simplicial_complex)
 
     edge_results = []
     for r in range(repeats):
-        if initial_phase is None:
-            initial_phase = np.random.random(simplicial_complex.n_edges)
+        initial_phase = np.random.random(simplicial_complex.n_edges)
 
         edge_results.append(
             integrate_edge_kuramoto(
@@ -68,7 +62,6 @@ def scan_frustration_parameters(
     save=True,
     folder="./results/",
     filename="results.pkl",
-    initial_phase=None,
     harmonic=False,
 ):
     """Scan frustration parameters alpha_1 and alpha_2 and save phases."""
@@ -88,7 +81,6 @@ def scan_frustration_parameters(
                         repeats=repeats,
                         t_max=t_max,
                         n_t=n_t,
-                        initial_phase=initial_phase,
                         harmonic=harmonic,
                     ),
                     parameter_combinations,
@@ -105,19 +97,15 @@ def scan_frustration_parameters(
 
 
 def _integrate_several_kuramoto_with_sigma(
-    sigma, simplicial_complex, alpha_1, alpha_2, repeats, t_max, n_t, initial_phase=None, seed=42
+    sigma, simplicial_complex, alpha_1, alpha_2, repeats, t_max, n_t, seed=42
 ):
     """ integrate kuramoto """
     np.random.seed(seed)
 
-    if initial_phase is not None:
-        repeats = 1
-
     edge_results = []
     for r in range(repeats):
 
-        if initial_phase is None:
-            initial_phase = np.random.random(simplicial_complex.n_edges)
+        initial_phase = np.random.random(simplicial_complex.n_edges)
 
         if not isinstance(alpha_1, (list, np.ndarray)):
             _alpha_1 = np.random.normal(0.0, alpha_1, simplicial_complex.n_edges)
@@ -149,7 +137,6 @@ def scan_sigma_parameters(
     save=True,
     folder="./results/",
     filename="results_sigma.pkl",
-    initial_phase=None,
 ):
     """Scan sigma parameter, if alpha1 is a scalar, it will be std of random alpha_1 vector."""
     if not os.path.exists(folder):
@@ -165,7 +152,6 @@ def scan_sigma_parameters(
                         repeats=repeats,
                         t_max=t_max,
                         n_t=n_t,
-                        initial_phase=initial_phase,
                         alpha_1=alpha1,
                         alpha_2=alpha2,
                     ),
@@ -234,25 +220,27 @@ def proj_subspace(vec, subspace):
     return np.linalg.norm(proj, axis=1)
 
 
-def compute_simplicial_order_parameter(result, harm_subspace):
-    """Compute simplicial order parmeters, global and a list of partial ones."""
+def compute_simplicial_order_parameter(result, harm_subspace, subset=None):
+    """Compute simplicial order parmeters, global and a list of partial ones
+
+    Args:
+        subset (list): list of bool to select which edge to average over.
+    """
     proj = np.zeros_like(result.T)
     for direction in harm_subspace.T:
         proj += np.outer(result.T.dot(direction), direction)
-    proj[proj == 0] = 1
-    global_order = abs(np.mean(np.exp(1.0j * result.T / proj), axis=1))
+    if subset is not None:
+        return abs(np.mean(np.exp(1.0j * (result.T / proj)[:, subset]), axis=1))
+    else:
+        return abs(np.mean(np.exp(1.0j * result.T / proj), axis=1))
 
-    partial_orders = []
-    for i in range(np.shape(harm_subspace)[1]):
-        perp_proj = np.zeros_like(result.T)
-        for j, direction in enumerate(harm_subspace.T):
-            if j != i:
-                perp_proj += np.outer(result.T.dot(direction), direction)
-            else:
-                proj = np.outer(result.T.dot(direction), direction)
-        proj[proj == 0] = 1.0
-        partial_orders.append(abs(np.mean(np.exp(1.0j * (result.T - perp_proj) / proj), axis=1)))
-    return global_order, partial_orders
+
+def compute_harmonic_projections(result, harm_subspace):
+    """Compute cosine similarities along harmonic directions."""
+    return [
+        ((result / np.linalg.norm(result, axis=0)[np.newaxis]).T.dot(direction)) ** 2
+        for direction in harm_subspace.T
+    ]
 
 
 def get_projection_slope(
@@ -288,12 +276,105 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
         Gsc, result[0], grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    harm_order = np.mean(compute_simplicial_order_parameter(res, harm_subspace)[0])
+    harm_order = np.mean(compute_simplicial_order_parameter(res, harm_subspace))
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
     harm = harm_slope if np.std(_harm) > eps or harm_slope > eps else np.nan
     return grad, curl, harm, harm_order
+
+
+def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc):
+    res = result.y
+    n_min = int(np.shape(res)[1] * frac)
+    res = res[:, n_min:]
+    _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
+        Gsc, result, grad_subspace, curl_subspace, harm_subspace, n_min
+    )
+    global_order = compute_simplicial_order_parameter(res, harm_subspace)
+    partial_orders = compute_harmonic_projections(res, harm_subspace)
+    harm_order = np.mean(global_order)
+    harm_partial_orders = np.mean(partial_orders, axis=1)
+
+    grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
+    curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
+    harm = harm_slope if np.std(_harm) > eps or harm_slope > eps else np.nan
+    return grad, curl, harm, harm_order, harm_partial_orders
+
+
+def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
+    """Plot grad, curl and harm subspaces projection measures."""
+
+    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+    grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
+
+    grad = []
+    curl = []
+    harm = []
+    harm_order = []
+    harm_partial_orders = [[] for _ in range(len(harm_subspace.T))]
+    alphas = []
+    for i, a2 in tqdm(enumerate(alpha2), total=len(alpha2)):
+        for result in results[i]:
+            (_grad, _curl, _harm, _harm_order, _harm_partial_order) = _get_projections_1d(
+                result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc
+            )
+            grad.append(_grad)
+            curl.append(_curl)
+            harm.append(_harm)
+            harm_order.append(_harm_order)
+            for _i, _harm_partial in enumerate(_harm_partial_order):
+                harm_partial_orders[_i].append(_harm_partial)
+            alphas.append(a2)
+
+    def _mean(alphas, data):
+        df = pd.DataFrame()
+        df["alpha"] = alphas
+        df["data"] = data
+        return df.groupby("alpha").mean().sort_values(by="alpha")
+
+    fig = plt.figure(figsize=(4, 6))
+    gs = fig.add_gridspec(2, hspace=0)
+    axs = gs.subplots(sharex=True)
+
+    plt.sca(axs[0])
+
+    plt.plot(alphas, grad, ".", c="C0", ms=1)
+    grad_df = _mean(alphas, grad)
+    plt.plot(grad_df.index, grad_df.data, "-", c="C0", label="grad")
+
+    plt.plot(alphas, curl, ".", c="C1", ms=1)
+    curl_df = _mean(alphas, curl)
+    plt.plot(curl_df.index, curl_df.data, "-", c="C1", label="curl")
+
+    plt.plot(alphas, harm, ".", c="C2", ms=1)
+    harm_df = _mean(alphas, harm)
+    plt.plot(harm_df.index, harm_df.data, "-", c="C2", label="harm")
+
+    plt.legend()
+    plt.grid(True)
+
+    plt.sca(axs[1])
+    plt.plot(alphas, harm_order, ".", c="C3", ms=1)
+    harm_order_df = _mean(alphas, harm_order)
+    plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C3", label="order")
+    c = ["C4", "C5"]
+
+    _sum_partial = []
+    for i, partial_order in enumerate(harm_partial_orders):
+        plt.plot(alphas, partial_order, ".", c=c[i], ms=1)
+        partial_order_df = _mean(alphas, partial_order)
+        _sum_partial.append(partial_order_df.data.to_numpy())
+        plt.plot(partial_order_df.index, partial_order_df.data, "-", c=c[i], label="partial_order")
+    plt.plot(partial_order_df.index, np.sum(_sum_partial, axis=0), label="sum of partial")
+
+    plt.axhline(0, lw=0.5, c="k")
+    plt.axhline(1, lw=0.5, c="k")
+    # axs[1].set_ylim(0, 1.01)
+    axs[1].set_xlim(alphas[0], alphas[-1])
+    plt.legend()
+    plt.grid(True)
+    plt.savefig(filename, bbox_inches="tight")
 
 
 def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
@@ -345,7 +426,6 @@ def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
     plt.figure(figsize=(5, 4))
-    # harm_order[harm_order<0.99] =0
     plt.imshow(harm_order, origin="lower", extent=extent, vmin=0, vmax=1)
     plt.plot(*_get_scan_boundary(grad), c="k", lw=2)
     plt.plot(*_get_scan_boundary(curl), c="r", lw=2, ls="--")
