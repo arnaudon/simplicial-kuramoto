@@ -1,17 +1,11 @@
-from simplicial_kuramoto.frustration_scan import plot_projections, plot_harmonic_order
-import matplotlib.pyplot as plt
-import networkx as nx
+from simplicial_kuramoto.frustration_scan import plot_harmonic_order_1d
 
 if __name__ == "__main__":
     folder = "./results/"
     figure_folder = "figures/"
-
-    sizes = [3]#, 4, 5, 6, 7, 8, 9, 10]
-    for size in sizes:
-
-        path = folder + "2_triangles_face.pkl"
-        filename = figure_folder + "2_triangles_face_proj.pdf"
-        plot_projections(path, filename, n_workers=80)
-        filename = figure_folder + "2_triangles_face_order.pdf"
-        plot_harmonic_order(path, filename, n_workers=80, frac=0.95)
-        plt.close()
+    n_workers = 80
+    n_points = 6
+    face = 1
+    path = folder + f"simple_hole_{n_points}_{face}.pkl"
+    filename = figure_folder + f"simple_hole_{n_points}_{face}.pdf"
+    plot_harmonic_order_1d(path, filename, n_workers=n_workers, frac=0.95)

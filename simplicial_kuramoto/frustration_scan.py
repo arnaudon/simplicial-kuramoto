@@ -333,7 +333,7 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
         df["data"] = data
         return df.groupby("alpha").mean().sort_values(by="alpha")
 
-    fig = plt.figure(figsize=(4, 6))
+    fig = plt.figure(figsize=(4, 4))
     gs = fig.add_gridspec(2, hspace=0)
     axs = gs.subplots(sharex=True)
 
@@ -350,9 +350,9 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     plt.plot(alphas, harm, ".", c="C2", ms=1)
     harm_df = _mean(alphas, harm)
     plt.plot(harm_df.index, harm_df.data, "-", c="C2", label="harm")
-
+    plt.ylabel("slope")
     plt.legend()
-    plt.grid(True)
+    # plt.grid(True)
 
     plt.sca(axs[1])
     plt.plot(alphas, harm_order, ".", c="C3", ms=1)
@@ -373,7 +373,9 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     # axs[1].set_ylim(0, 1.01)
     axs[1].set_xlim(alphas[0], alphas[-1])
     plt.legend()
-    plt.grid(True)
+    # plt.grid(True)
+    plt.ylabel("order")
+    plt.xlabel(r"$alpha_2$")
     plt.savefig(filename, bbox_inches="tight")
 
 
@@ -414,7 +416,7 @@ def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
     step2 = alpha1[1] - alpha1[0]
     extent = (alpha2[0] - step2, alpha2[-1] - step2, alpha1[0] - step1, alpha1[-1] - step1)
 
-    def _get_scan_boundary(vec, axis=1):
+    def _get_scan_boundary(vec, axis=0):
         if axis == 0:
             a1, a2 = np.meshgrid(alpha1[:-1], alpha2)
         if axis == 1:

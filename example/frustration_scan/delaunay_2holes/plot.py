@@ -41,5 +41,5 @@ if __name__ == "__main__":
     plt.legend()
     plt.savefig('partial.pdf')
 
-    #filename = figure_folder + "delaunay_one_hole_1d_harmonic_order.pdf"
-    #plot_harmonic_order_1d(path, filename, n_workers=n_workers, frac=0.95)
+    filename = figure_folder + "delaunay_one_hole_1d_harmonic_order.pdf"
+    plot_harmonic_order_1d(path, filename, n_workers=n_workers, frac=0.95)

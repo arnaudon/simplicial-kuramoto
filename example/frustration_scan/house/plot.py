@@ -1,6 +1,6 @@
 from simplicial_kuramoto.frustration_scan import plot_projections, plot_harmonic_order
 import matplotlib.pyplot as plt
-from scan_house_size import my_house
+from scan import my_house
 import networkx as nx
 
 if __name__ == "__main__":
@@ -29,9 +29,11 @@ if __name__ == "__main__":
         plot_harmonic_order(path, filename, n_workers=80, frac=0.95)
         plt.close()
 
+        """
         path = folder + f"house_{size}_harm.pkl"
         filename = figure_folder + f"house_{size}_harm_proj.pdf"
         plot_projections(path, filename, n_workers=80)
         filename = figure_folder + f"house_{size}_harm_order.pdf"
         plot_harmonic_order(path, filename, n_workers=80, frac=0.95)
         plt.close()
+        """
