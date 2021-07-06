@@ -109,6 +109,8 @@ def _integrate_several_kuramoto_with_sigma(
 
         if not isinstance(alpha_1, (list, np.ndarray)):
             _alpha_1 = np.random.normal(0.0, alpha_1, simplicial_complex.n_edges)
+        else:
+            _alpha_1 = alpha_1
 
         edge_results.append(
             integrate_edge_kuramoto(
