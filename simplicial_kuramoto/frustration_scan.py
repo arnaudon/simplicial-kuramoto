@@ -229,12 +229,15 @@ def compute_simplicial_order_parameter(result, harm_subspace, subset=None):
         subset (list): list of bool to select which edge to average over.
     """
     proj = np.zeros_like(result.T)
+    mask = np.ones_like(harm_subspace[:, 0], dtype=bool)
     for direction in harm_subspace.T:
         proj += np.outer(result.T.dot(direction), direction)
+        mask = mask * (abs(direction) > 1e-10)
     if subset is not None:
-        return abs(np.mean(np.exp(1.0j * (result.T / proj)[:, subset]), axis=1))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            return abs(np.mean(np.exp(1.0j * (result.T / proj)[:, mask * subset]), axis=1))
     else:
-        return abs(np.mean(np.exp(1.0j * result.T / proj), axis=1))
+        return abs(np.mean(np.exp(1.0j * result.T[:, mask] / proj[:, mask]), axis=1))
 
 
 def compute_harmonic_projections(result, harm_subspace):

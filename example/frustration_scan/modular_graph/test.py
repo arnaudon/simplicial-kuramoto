@@ -15,12 +15,12 @@ from simplicial_kuramoto.frustration_scan import (
 )
 
 if __name__ == "__main__":
-    seed = 42
+    seed = 43
     np.random.seed(seed)
 
     n_workers = 80
     n_clusters = 3
-    graph = modular_graph(n_clusters, 7, 2, inter_weight=0.4, intra_weight=0.6)
+    graph = modular_graph(n_clusters, 5, 2, inter_weight=1.0, intra_weight=1.0, rando=False)
     Gsc = SimplicialComplex(graph=graph)
     subsets = []
     for i in range(n_clusters):
@@ -38,23 +38,26 @@ if __name__ == "__main__":
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
     print(np.shape(harm_subspace))
     plt.figure()
-    pos =nx.spring_layout(graph)
+    pos = nx.spring_layout(graph)
     for i, harm in enumerate(harm_subspace.T):
         plt.figure()
         nx.draw(graph, pos=pos, edge_color=abs(harm))
         c = nx.draw_networkx_edges(graph, pos=pos, edge_color=abs(harm))
         plt.colorbar(c)
-        plt.savefig(f"graph_{i}.pdf", bbox_inches='tight')
+        plt.savefig(f"graph_{i}.pdf", bbox_inches="tight")
 
-    t_max = 2000
-    n_t = 500
+    t_max = 500
+    n_t = 5000
     n_min = 0
 
-    alpha_1 = harm_subspace.sum(1) #[:, 0]
-    initial_phase = np.random.random(Gsc.n_edges)
+    alpha_1 = harm_subspace.sum(1)  # [:, 0]
+    alpha_1 = harm_subspace[:, 0]
+    initial_phase = alpha_1
+    alpha_1 = np.random.random(Gsc.n_edges)
+    alpha_2 = 1.2
 
     plt.figure(figsize=(10, 4))
-    for alpha_2 in [1.50]:
+    for alpha_2 in [alpha_2]:
         print("alpha_2=", alpha_2)
         res = integrate_edge_kuramoto(
             Gsc,
@@ -67,18 +70,21 @@ if __name__ == "__main__":
         result = res.y[:, n_min:]
         time = res.t[n_min:]
 
-        global_order = compute_simplicial_order_parameter(result, harm_subspace)
         for i, subset in enumerate(subsets):
             order = compute_simplicial_order_parameter(result, harm_subspace, subset)
             plt.plot(time, order, label=f"subset {i}", lw=0.5)
 
+        global_order = compute_simplicial_order_parameter(result, harm_subspace)
+        plt.plot(time, global_order, label=f"harm order", c='r')
+
         partial_orders = compute_harmonic_projections(result, harm_subspace)
-        #plt.plot(time, global_order, label=f"alpha_2 = {alpha_2}", c='r')
         for partial_order in partial_orders:
-            plt.plot(time, partial_order, label=f"partial, alpha_2 = {alpha_2}", ls='--')
-        plt.plot(time, np.sum(partial_orders, axis=0), label=f"partial sum", c='r', ls='--')
+            plt.plot(time, partial_order, label=f"partial, alpha_2 = {alpha_2}", ls="--")
+        plt.plot(time, np.sum(partial_orders, axis=0), label=f"partial sum", c="r", ls="--")
+
     plt.gca().set_xlim(time[0], time[-1])
-    plt.axhline(1.0, ls="--", c="k")
+    plt.axhline(1.0, ls="-", c="k",lw=0.5)
+    plt.axhline(0.0, ls="-", c="k",lw=0.5)
     plt.legend(loc="best")
     # plt.gca().set_ylim(0, 1.02)
     plt.xlabel("time")
