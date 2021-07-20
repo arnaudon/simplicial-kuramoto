@@ -45,6 +45,7 @@ def _integrate_several_kuramoto(
                 n_t,
                 alpha_1=parameters[0] * harm_subspace[:, 0] if harmonic else parameters[0],
                 alpha_2=parameters[1],
+                disable_tqdm=True,
             )
         )
 
@@ -222,22 +223,69 @@ def proj_subspace(vec, subspace):
     return np.linalg.norm(proj, axis=1)
 
 
-def compute_simplicial_order_parameter(result, harm_subspace, subset=None):
+def compute_simplicial_order_parameter(result, Gsc, subset=None):
+    if subset is not None:
+        result = np.array(np.diag(subset), dtype=float).dot(result)
+    order = (np.cos(Gsc.N0s.dot(result)) - 1.0).sum(axis=0)
+    order += (np.cos(Gsc.N1.dot(result)) - 1.0).sum(axis=0)
+
+    # todo: find a proper normalisation
+    norm = Gsc.n_edges if subset is None else sum(subset)
+    return 1 + order / norm
+
+
+def compute_simplicial_order_parameter_old(result, harm_subspace, subset=None):
     """Compute simplicial order parmeters, global and a list of partial ones
 
     Args:
         subset (list): list of bool to select which edge to average over.
     """
     proj = np.zeros_like(result.T)
-    mask = np.ones_like(harm_subspace[:, 0], dtype=bool)
+    # mask = []# np.ones_like(harm_subspace[:, 0], dtype=bool)
+    # result /= np.linalg.norm(result, axis=0)
     for direction in harm_subspace.T:
         proj += np.outer(result.T.dot(direction), direction)
-        mask = mask * (abs(direction) > 1e-10)
+        # proj += np.outer(result.T.dot(direction), direction)
+        # mask.append(abs(direction) > 1e-10)
+        # mask = mask * (abs(direction) > 1e-10)
+    # proj /= np.linalg.norm(proj, axis=1)[:,np.newaxis]
+    # print(np.shape(proj))
+    # mask = np.mean(mask, axis=0)
+    # mask = np.array(mask, dtype=bool)
+    # proj[:, ~mask] = 1
+    # print(mask)
     if subset is not None:
         with np.errstate(divide="ignore", invalid="ignore"):
-            return abs(np.mean(np.exp(1.0j * (result.T / proj)[:, mask * subset]), axis=1))
+            # return abs(np.mean(np.exp(1.0j * (result.T / proj)[:, mask * subset]), axis=1))
+            return abs(np.mean(np.exp(1.0j * (result.T - proj)[:, subset]), axis=1))
     else:
-        return abs(np.mean(np.exp(1.0j * result.T[:, mask] / proj[:, mask]), axis=1))
+        # return abs(np.mean(np.exp(1.0j * result.T[:, mask] / proj[:, mask]), axis=1))
+        plt.figure()
+        ii = [-1, -2]
+        for i in ii:
+            plt.plot(
+                np.real(np.exp(1.0j * (result.T - proj))[i]),
+                np.imag(np.exp(1.0j * (result.T - proj))[i]),
+                "+",
+            )
+            plt.plot(
+                np.real(np.mean(np.exp(1.0j * (result.T - proj))[i])),
+                np.imag(np.mean(np.exp(1.0j * (result.T - proj))[i])),
+                "or",
+            )
+
+        x = np.linspace(0, 2 * np.pi, 100)
+        plt.plot(np.cos(x), np.sin(x))
+        plt.plot(0, 0, "o")
+        plt.savefig("h.pdf")
+        plt.figure()
+        # plt.plot((result.T-proj)[100:], c='m')
+        # plt.plot((result.T)[100:], c='r')
+        # plt.plot((proj)[100:], c='k')
+        plt.plot(np.real(np.exp(1.0j * (result.T)[-100:])))
+        plt.savefig("hh.pdf")
+        print(abs(np.mean(np.exp(1.0j * (result.T - proj))[-1])))
+        return abs(np.mean(np.exp(1.0j * (result.T - proj)), axis=1))
 
 
 def compute_harmonic_projections(result, harm_subspace):
@@ -281,7 +329,8 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
         Gsc, result[0], grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    harm_order = np.mean(compute_simplicial_order_parameter(res, harm_subspace))
+    harm_order = np.mean(compute_simplicial_order_parameter(res, Gsc))
+    # harm_order = np.mean(compute_harmonic_projections(res, harm_subspace)[0])
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
@@ -296,7 +345,7 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
         Gsc, result, grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    global_order = compute_simplicial_order_parameter(res, harm_subspace)
+    global_order = compute_simplicial_order_parameter(res, Gsc)
     partial_orders = compute_harmonic_projections(res, harm_subspace)
     harm_order = np.mean(global_order)
     harm_partial_orders = np.mean(partial_orders, axis=1)
@@ -365,6 +414,7 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C3", label="order")
     c = ["C4", "C5"]
 
+    """
     _sum_partial = []
     for i, partial_order in enumerate(harm_partial_orders):
         plt.plot(alphas, partial_order, ".", c=c[i], ms=1)
@@ -376,6 +426,7 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     plt.axhline(0, lw=0.5, c="k")
     plt.axhline(1, lw=0.5, c="k")
     # axs[1].set_ylim(0, 1.01)
+    """
     axs[1].set_xlim(alphas[0], alphas[-1])
     plt.legend()
     # plt.grid(True)
@@ -433,9 +484,10 @@ def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
     plt.figure(figsize=(5, 4))
-    plt.imshow(harm_order, origin="lower", extent=extent, vmin=0, vmax=1)
-    plt.plot(*_get_scan_boundary(grad), c="k", lw=2)
-    plt.plot(*_get_scan_boundary(curl), c="r", lw=2, ls="--")
+    print(np.max(harm_order))
+    plt.imshow(harm_order, origin="lower", extent=extent, vmax=1)
+    plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
+    plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
     plt.axis(extent)
     plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")

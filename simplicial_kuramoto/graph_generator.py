@@ -23,7 +23,7 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                 G.add_edge(
                     (i * Nn) + j,
                     (i * Nn) + k,
-                    weight=intra_weight,
+                    weight=intra_weight+np.random.normal(0, 0.1),
                     community=str((i, i)),
                 )
                 node_assign[(i * Nn) + j] = str(i)
@@ -35,7 +35,8 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                 source = np.random.randint(i * Nn + 1, (i + 1) * Nn, Nie).tolist()
                 sink = np.random.randint(j * (Nn + 1) + 1, (j + 1) * Nn, Nie).tolist()
                 for e in range(Nie):
-                    G.add_edge(source[e], sink[e], weight=inter_weight, community=str((i, j)))
+                    G.add_edge(source[e], sink[e], weight=inter_weight,
+                               community=str((i, j)))
 
     else:
         Neig = np.linspace(1, Nn, Nn).astype(int)
@@ -52,10 +53,21 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                                 community=str((c1, c2)),
                             )
                     for j in range(bonus):
-                        G.add_edge(
-                            Neig.tolist()[j] + c1 * Nn,
-                            np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn,
-                            weight=inter_weight,
+
+                        a = Neig.tolist()[j] + c1 * Nn
+                        b=  np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn
+                        ok = False
+                        if c1==0 and b==11:
+                            print('lkj', c1, j, a, b)
+                            b = 12
+                            ok=True
+                        elif c1==0 and b==12:# and ok:
+                            b = 11
+                            print('---lkj', c1, j, a, b)
+                            ok = False
+                        print(c1, j, a, b)
+                        G.add_edge(a, b,
+                            weight=inter_weight+np.random.normal(0, 0.1),
                             community=str((c1, c2)),
                         )
     nx.set_node_attributes(G, node_assign, "community")
