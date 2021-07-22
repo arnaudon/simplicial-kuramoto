@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     n_workers = 80
     n_clusters = 3
-    d = 0.0
+    d = 0.3
     a = (d + 1) / 2
     b = 1 - a
     print(d, a, b)

@@ -226,8 +226,8 @@ def proj_subspace(vec, subspace):
 def compute_simplicial_order_parameter(result, Gsc, subset=None):
     if subset is not None:
         result = np.array(np.diag(subset), dtype=float).dot(result)
-    order = (np.cos(Gsc.N0s.dot(result)) - 1.0).sum(axis=0)
-    order += (np.cos(Gsc.N1.dot(result)) - 1.0).sum(axis=0)
+    order = (1.0 / np.diag(Gsc.W0.toarray())).dot(np.cos(Gsc.N0s.dot(result)) - 1.0)
+    order += (1.0 / np.diag(Gsc.W2.toarray())).dot(np.cos(Gsc.N1.dot(result)) - 1.0)
 
     # todo: find a proper normalisation
     norm = Gsc.n_edges if subset is None else sum(subset)
