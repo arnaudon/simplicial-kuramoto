@@ -224,14 +224,25 @@ def proj_subspace(vec, subspace):
 
 
 def compute_simplicial_order_parameter(result, Gsc, subset=None):
-    if subset is not None:
-        result = np.array(np.diag(subset), dtype=float).dot(result)
-    order = (1.0 / np.diag(Gsc.W0.toarray())).dot(np.cos(Gsc.N0s.dot(result)) - 1.0)
-    order += (1.0 / np.diag(Gsc.W2.toarray())).dot(np.cos(Gsc.N1.dot(result)) - 1.0)
+    """Evaluate the simplicial order parameter, or the partial one for subset edges."""
+    w0_inv = 1.0 / np.diag(Gsc.W0.toarray())
+    if Gsc.W2 is not None:
+        w2_inv = 1.0 / np.diag(Gsc.W2.toarray())
 
-    # todo: find a proper normalisation
-    norm = Gsc.n_edges if subset is None else sum(subset)
-    return 1 + order / norm
+    if subset is not None:
+        # if we have at least an adjacent edge in subset
+        w0_inv = w0_inv * np.clip(abs(Gsc.B0.T).dot(subset), 0, 1)
+        # if we have all 3 edges in subset
+        w2_inv = w2_inv * (abs(Gsc.B1).dot(subset) == 3)
+
+    order = w0_inv.dot(np.cos(Gsc.N0s.dot(result)))
+    norm = w0_inv.sum()
+
+    if Gsc.W2 is not None:
+        order += w2_inv.dot(np.cos(Gsc.N1.dot(result)))
+        norm +=  w2_inv.sum()
+
+    return order / norm
 
 
 def compute_simplicial_order_parameter_old(result, harm_subspace, subset=None):
@@ -484,8 +495,9 @@ def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
     plt.figure(figsize=(5, 4))
-    print(np.max(harm_order))
-    plt.imshow(harm_order, origin="lower", extent=extent, vmax=1)
+    print("max=", np.max(harm_order))
+    print("min=", np.min(harm_order))
+    plt.imshow(harm_order, origin="lower", extent=extent)  # , vmax=1)
     plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
     plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
     plt.axis(extent)

@@ -13,12 +13,12 @@ if __name__ == "__main__":
     np.random.seed(seed)
 
     n_workers = 80
-    n_clusters = 3
-    d = 0.3
+    n_clusters = 4
+    d = 0.2
     a = (d + 1) / 2
     b = 1 - a
     print(d, a, b)
-    graph = modular_graph(n_clusters, 10, 5, inter_weight=b, intra_weight=a, rando=False)
+    graph = modular_graph(n_clusters, 7, 2, inter_weight=b, intra_weight=a, rando=False)
     Gsc = SimplicialComplex(graph=graph)
     print(Gsc.faces, Gsc.n_faces)
 
@@ -50,16 +50,15 @@ if __name__ == "__main__":
         plt.colorbar(c)
         plt.savefig(f"graph_{i}.pdf", bbox_inches="tight")
 
-    t_max = 100
-    n_t = 1000
+    t_max = 500
+    n_t = 5000
     n_min = 0
 
     alpha_1 = harm_subspace.sum(1)  # [:, 0]
     # alpha_1 = harm_subspace[:, 0]
     initial_phase = alpha_1
     initial_phase = np.random.random(Gsc.n_edges)
-    # alpha_2 = 1.5  # 1.55
-    alpha_2 = 1.2  # 1.55
+    alpha_2 = 1.2
 
     plt.figure(figsize=(10, 4))
     for alpha_2 in [alpha_2]:
