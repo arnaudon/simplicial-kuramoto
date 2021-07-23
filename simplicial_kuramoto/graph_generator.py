@@ -56,16 +56,14 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
 
                         a = Neig.tolist()[j] + c1 * Nn
                         b=  np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn
+                        # this trick below is to get a symetric 3-module graph
                         ok = False
                         if c1==0 and b==11:
-                            print('lkj', c1, j, a, b)
                             b = 12
                             ok=True
                         elif c1==0 and b==12:# and ok:
                             b = 11
-                            print('---lkj', c1, j, a, b)
                             ok = False
-                        print(c1, j, a, b)
                         G.add_edge(a, b,
                             weight=inter_weight+np.random.normal(0, 0.1),
                             community=str((c1, c2)),
