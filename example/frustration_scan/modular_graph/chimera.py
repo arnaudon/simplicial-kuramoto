@@ -14,12 +14,12 @@ if __name__ == "__main__":
 
     n_workers = 80
     n_clusters = 3
-    d = 0.3
+    d = 0.304
     intra_weight = (d + 1) / 2
     inter_weight = 1 - intra_weight
     print("inter=", inter_weight, "intra=", intra_weight)
 
-    t_max = 1000
+    t_max = 500
     n_t = 5000
     n_min = 0
 

@@ -15,8 +15,13 @@ if __name__ == "__main__":
 
     radius = 0.15
     path = folder + f"delaunay_one_hole_{radius}_harmonic.pkl"
+
     n_workers = 80
 
+    filename = figure_folder + "delaunay_one_hole_1d_harmonic_order.pdf"
+    plot_harmonic_order_1d(path, filename, n_workers=n_workers, frac=0.9)
+
+def lkj():
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
     alpha_i =  -1
@@ -39,5 +44,3 @@ if __name__ == "__main__":
     plt.plot(result.t, order_2, label='order2')
     plt.legend()
     plt.savefig('partial.pdf')
-    filename = figure_folder + "delaunay_one_hole_1d_harmonic_order.pdf"
-    plot_harmonic_order_1d(path, filename, n_workers=n_workers, frac=0.95)

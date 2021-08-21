@@ -12,7 +12,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy as sc
-from scipy.spatial import distance
 from tqdm import tqdm
 
 from simplicial_kuramoto.integrators import integrate_edge_kuramoto
@@ -97,80 +96,6 @@ def scan_frustration_parameters(
     return results
 
 
-def _integrate_several_kuramoto_with_sigma(
-    sigma, simplicial_complex, alpha_1, alpha_2, repeats, t_max, n_t, seed=42
-):
-    """ integrate kuramoto """
-    np.random.seed(seed)
-
-    edge_results = []
-    for r in range(repeats):
-
-        initial_phase = np.random.random(simplicial_complex.n_edges)
-
-        if not isinstance(alpha_1, (list, np.ndarray)):
-            _alpha_1 = np.random.normal(0.0, alpha_1, simplicial_complex.n_edges)
-        else:
-            _alpha_1 = alpha_1
-
-        edge_results.append(
-            integrate_edge_kuramoto(
-                simplicial_complex,
-                initial_phase,
-                t_max,
-                n_t,
-                alpha_1=_alpha_1,
-                alpha_2=alpha_2,
-                sigma=sigma,
-            )
-        )
-
-    return edge_results
-
-
-def scan_sigma_parameters(
-    simplicial_complex,
-    sigmas=np.linspace(1, 5, 10),
-    alpha1=0.0,
-    alpha2=0.0,
-    repeats=1,
-    n_workers=4,
-    t_max=200,
-    n_t=1000,
-    save=True,
-    folder="./results/",
-    filename="results_sigma.pkl",
-):
-    """Scan sigma parameter, if alpha1 is a scalar, it will be std of random alpha_1 vector."""
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    with Pool(n_workers) as pool:
-        results = list(
-            tqdm(
-                pool.imap(
-                    partial(
-                        _integrate_several_kuramoto_with_sigma,
-                        simplicial_complex=simplicial_complex,
-                        repeats=repeats,
-                        t_max=t_max,
-                        n_t=n_t,
-                        alpha_1=alpha1,
-                        alpha_2=alpha2,
-                    ),
-                    sigmas,
-                ),
-                total=len(sigmas),
-            )
-        )
-
-    if save:
-        with open(folder + filename, "wb") as f:
-            pickle.dump([simplicial_complex, results, sigmas], f)
-
-    return results
-
-
 def plot_phases(path, filename):
     """From result of frustration scan, plot a grid of phase trajectories."""
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
@@ -240,63 +165,9 @@ def compute_simplicial_order_parameter(result, Gsc, subset=None):
 
     if Gsc.W2 is not None:
         order += w2_inv.dot(np.cos(Gsc.N1.dot(result)))
-        norm +=  w2_inv.sum()
+        norm += w2_inv.sum()
 
     return order / norm
-
-
-def compute_simplicial_order_parameter_old(result, harm_subspace, subset=None):
-    """Compute simplicial order parmeters, global and a list of partial ones
-
-    Args:
-        subset (list): list of bool to select which edge to average over.
-    """
-    proj = np.zeros_like(result.T)
-    # mask = []# np.ones_like(harm_subspace[:, 0], dtype=bool)
-    # result /= np.linalg.norm(result, axis=0)
-    for direction in harm_subspace.T:
-        proj += np.outer(result.T.dot(direction), direction)
-        # proj += np.outer(result.T.dot(direction), direction)
-        # mask.append(abs(direction) > 1e-10)
-        # mask = mask * (abs(direction) > 1e-10)
-    # proj /= np.linalg.norm(proj, axis=1)[:,np.newaxis]
-    # print(np.shape(proj))
-    # mask = np.mean(mask, axis=0)
-    # mask = np.array(mask, dtype=bool)
-    # proj[:, ~mask] = 1
-    # print(mask)
-    if subset is not None:
-        with np.errstate(divide="ignore", invalid="ignore"):
-            # return abs(np.mean(np.exp(1.0j * (result.T / proj)[:, mask * subset]), axis=1))
-            return abs(np.mean(np.exp(1.0j * (result.T - proj)[:, subset]), axis=1))
-    else:
-        # return abs(np.mean(np.exp(1.0j * result.T[:, mask] / proj[:, mask]), axis=1))
-        plt.figure()
-        ii = [-1, -2]
-        for i in ii:
-            plt.plot(
-                np.real(np.exp(1.0j * (result.T - proj))[i]),
-                np.imag(np.exp(1.0j * (result.T - proj))[i]),
-                "+",
-            )
-            plt.plot(
-                np.real(np.mean(np.exp(1.0j * (result.T - proj))[i])),
-                np.imag(np.mean(np.exp(1.0j * (result.T - proj))[i])),
-                "or",
-            )
-
-        x = np.linspace(0, 2 * np.pi, 100)
-        plt.plot(np.cos(x), np.sin(x))
-        plt.plot(0, 0, "o")
-        plt.savefig("h.pdf")
-        plt.figure()
-        # plt.plot((result.T-proj)[100:], c='m')
-        # plt.plot((result.T)[100:], c='r')
-        # plt.plot((proj)[100:], c='k')
-        plt.plot(np.real(np.exp(1.0j * (result.T)[-100:])))
-        plt.savefig("hh.pdf")
-        print(abs(np.mean(np.exp(1.0j * (result.T - proj))[-1])))
-        return abs(np.mean(np.exp(1.0j * (result.T - proj)), axis=1))
 
 
 def compute_harmonic_projections(result, harm_subspace):
@@ -341,7 +212,6 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
         Gsc, result[0], grad_subspace, curl_subspace, harm_subspace, n_min
     )
     harm_order = np.mean(compute_simplicial_order_parameter(res, Gsc))
-    # harm_order = np.mean(compute_harmonic_projections(res, harm_subspace)[0])
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
@@ -356,15 +226,14 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
         Gsc, result, grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    global_order = compute_simplicial_order_parameter(res, Gsc)
-    partial_orders = compute_harmonic_projections(res, harm_subspace)
-    harm_order = np.mean(global_order)
-    harm_partial_orders = np.mean(partial_orders, axis=1)
+    harm_order = compute_simplicial_order_parameter(res, Gsc)
+    mean_harm_order = np.mean(harm_order)
+    std_harm_order = np.std(harm_order)
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
     harm = harm_slope if np.std(_harm) > eps or harm_slope > eps else np.nan
-    return grad, curl, harm, harm_order, harm_partial_orders
+    return grad, curl, harm, mean_harm_order, std_harm_order
 
 
 def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
@@ -376,20 +245,19 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     grad = []
     curl = []
     harm = []
-    harm_order = []
-    harm_partial_orders = [[] for _ in range(len(harm_subspace.T))]
+    mean_harm_order = []
+    std_harm_order = []
     alphas = []
     for i, a2 in tqdm(enumerate(alpha2), total=len(alpha2)):
         for result in results[i]:
-            (_grad, _curl, _harm, _harm_order, _harm_partial_order) = _get_projections_1d(
+            (_grad, _curl, _harm, _mean_harm_order, _std_harm_order) = _get_projections_1d(
                 result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc
             )
             grad.append(_grad)
             curl.append(_curl)
             harm.append(_harm)
-            harm_order.append(_harm_order)
-            for _i, _harm_partial in enumerate(_harm_partial_order):
-                harm_partial_orders[_i].append(_harm_partial)
+            mean_harm_order.append(_mean_harm_order)
+            std_harm_order.append(_std_harm_order)
             alphas.append(a2)
 
     def _mean(alphas, data):
@@ -420,33 +288,25 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     # plt.grid(True)
 
     plt.sca(axs[1])
-    plt.plot(alphas, harm_order, ".", c="C3", ms=1)
-    harm_order_df = _mean(alphas, harm_order)
-    plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C3", label="order")
-    c = ["C4", "C5"]
+    plt.plot(alphas, mean_harm_order, ".", c="C3", ms=1)
+    harm_order_df = _mean(alphas, mean_harm_order)
+    plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C3", label="mean(order)")
 
-    """
-    _sum_partial = []
-    for i, partial_order in enumerate(harm_partial_orders):
-        plt.plot(alphas, partial_order, ".", c=c[i], ms=1)
-        partial_order_df = _mean(alphas, partial_order)
-        _sum_partial.append(partial_order_df.data.to_numpy())
-        plt.plot(partial_order_df.index, partial_order_df.data, "-", c=c[i], label="partial_order")
-    plt.plot(partial_order_df.index, np.sum(_sum_partial, axis=0), label="sum of partial")
-
-    plt.axhline(0, lw=0.5, c="k")
-    plt.axhline(1, lw=0.5, c="k")
-    # axs[1].set_ylim(0, 1.01)
-    """
+    plt.ylabel("mean(order)")
+    plt.legend(loc="upper right")
+    plt.twinx()
+    plt.plot(alphas, std_harm_order, ".", c="C4", ms=1)
+    harm_order_df = _mean(alphas, std_harm_order)
+    plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C4", label="std(order)")
+    axs[1].set_ylim(-0.01, max(max(std_harm_order), 0.1))
     axs[1].set_xlim(alphas[0], alphas[-1])
-    plt.legend()
-    # plt.grid(True)
-    plt.ylabel("order")
+    plt.legend(loc="upper left")
+    plt.ylabel("std(order)")
     plt.xlabel(r"$alpha_2$")
     plt.savefig(filename, bbox_inches="tight")
 
 
-def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
+def plot_harmonic_order(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     """Plot grad, curl and harm subspaces projection measures."""
 
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
@@ -495,8 +355,6 @@ def plot_harmonic_order(path, filename, frac=0.8, eps=1e-5, n_workers=4):
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
     plt.figure(figsize=(5, 4))
-    print("max=", np.max(harm_order))
-    print("min=", np.min(harm_order))
     plt.imshow(harm_order, origin="lower", extent=extent)  # , vmax=1)
     plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
     plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
@@ -578,108 +436,5 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
     )
 
     fig.tight_layout()
-
-    plt.savefig(filename, bbox_inches="tight")
-
-
-def rec_plot(s, eps=0.1, steps=10):
-    """Compute recurence plot.
-
-    Adapted from: https://github.com/laszukdawid/recurrence-plot/blob/master/plot_recurrence.py
-    """
-    return distance.squareform(np.clip(np.floor_divide(distance.pdist(s.T), eps), 0, steps))
-
-
-def plot_recurences(path, filename, eps=0.1, steps=10):
-    """Plot grid of recurence plots."""
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
-
-    fig, axs = plt.subplots(len(alpha1), len(alpha2), figsize=(len(alpha2), len(alpha1)))
-    axs = np.flip(axs, axis=0)
-    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
-        plt.sca(axs[idx_a1, idx_a2])
-        result = mod(results[i][0].y)
-        plt.imshow(
-            rec_plot(result, eps=eps, steps=steps),
-            origin="lower",
-            aspect="auto",
-            cmap="Blues_r",
-            interpolation="nearest",
-            extent=(
-                results[i][0].t[0],
-                results[i][0].t[-1],
-                results[i][0].t[0],
-                results[i][0].t[-1],
-            ),
-            vmin=0,
-            vmax=steps,
-        )
-        plt.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-
-    for idx_a1 in range(len(alpha1)):
-        axs[idx_a1, 0].set_ylabel(f"{np.round(alpha1[idx_a1], 2)}", fontsize=15)
-    for idx_a2 in range(len(alpha2)):
-        axs[0, idx_a2].set_xlabel(f"{np.round(alpha2[idx_a2], 2)}", fontsize=15)
-
-    fig.text(-0.01, 0.5, "Alpha 1", va="center", rotation="vertical", fontsize=20)
-    fig.text(0.5, -0.01, "Alpha 2", ha="center", fontsize=20)
-    fig.tight_layout()
-    plt.savefig(filename, bbox_inches="tight")
-
-
-def _rqa_comp(X):
-    """Compute rqa with pyunicorn."""
-    from pyunicorn.timeseries.recurrence_plot import RecurrencePlot
-
-    return RecurrencePlot(X.T, recurrence_rate=0.1, metric="supremum", silence_level=2)
-
-
-def plot_rqa(path, filename, frac=0.2, min_rr=0.9, n_steps=5):
-    """Plot recurence data with pyrqa."""
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
-
-    rr = np.empty([len(alpha1), len(alpha2)])
-    det = np.empty([len(alpha1), len(alpha2)])
-    diag = np.empty([len(alpha1), len(alpha2)])
-    lam = np.empty([len(alpha1), len(alpha2)])
-    pairs = list(itertools.product(range(len(alpha1)), range(len(alpha2))))
-    for i, (idx_a1, idx_a2) in tqdm(enumerate(pairs), total=len(pairs)):
-        result = mod(results[i][0].y)[:, ::n_steps]
-        rqa_res = _rqa_comp(result[:, int(np.shape(result)[1] * frac) :])
-        rr[idx_a1, idx_a2] = rqa_res.recurrence_rate()
-        det[idx_a1, idx_a2] = rqa_res.determinism()
-        diag[idx_a1, idx_a2] = rqa_res.average_diaglength()
-        lam[idx_a1, idx_a2] = rqa_res.laminarity()
-
-    fig, axs = plt.subplots(2, 2)
-    extent = (alpha2[0], alpha2[-1], alpha1[0], alpha1[-1])
-
-    # mask stationary state
-    mask = rr < 0.001  # min_rr
-
-    rr[mask] = np.nan
-    cm = axs[0, 0].imshow(rr, origin="lower", extent=extent, aspect="auto")
-    axs[0, 0].set_title("Recurrence rate")
-    plt.colorbar(cm, ax=axs[0, 0])
-
-    det[mask] = np.nan
-    cm = axs[0, 1].imshow(det, origin="lower", extent=extent, aspect="auto")
-    plt.colorbar(cm, ax=axs[0, 1])
-    axs[0, 1].set_title("Determinism")
-
-    diag[mask] = np.nan
-    cm = axs[1, 0].imshow(diag, origin="lower", extent=extent, aspect="auto")
-    plt.colorbar(cm, ax=axs[1, 0])
-    axs[1, 0].set_title("Average diagonal length")
-
-    lam[mask] = np.nan
-    cm = axs[1, 1].imshow(lam, origin="lower", extent=extent, aspect="auto")
-    plt.colorbar(cm, ax=axs[1, 1])
-    axs[1, 1].set_title("Laminarity")
-
-    fig.tight_layout()
-
-    fig.text(0.5, 0.0, "Alpha 2", ha="center")
-    fig.text(0.0, 0.5, "Alpha 1", va="center", rotation="vertical")
 
     plt.savefig(filename, bbox_inches="tight")

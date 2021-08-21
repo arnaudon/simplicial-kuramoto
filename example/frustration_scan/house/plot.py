@@ -3,7 +3,8 @@ from simplicial_kuramoto.frustration_scan import (
     plot_harmonic_order,
     get_subspaces,
     compute_simplicial_order_parameter,
-    compute_harmonic_projections
+    compute_harmonic_projections,
+    plot_harmonic_order_1d,
 )
 import matplotlib.pyplot as plt
 from scan import my_house
@@ -18,7 +19,7 @@ if __name__ == "__main__":
         Gsc = my_house(size)
 
         grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
-        path = folder + f"house_{size}.pkl"
+        path = folder + f"house_{size}_harm.pkl"
         filename = figure_folder + f"house_{size}_proj.pdf"
 
         """
@@ -64,6 +65,8 @@ if __name__ == "__main__":
         #plot_projections(path, filename, n_workers=80)
         filename = figure_folder + f"house_{size}_order.pdf"
         plot_harmonic_order(path, filename, n_workers=80, frac=0.5)
+        filename = figure_folder + f"house_{size}_order_1d.pdf"
+        plot_harmonic_order_1d(path, filename, n_workers=80, frac=0.95)
         #plt.close()
 
         """

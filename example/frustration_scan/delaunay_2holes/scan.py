@@ -18,7 +18,7 @@ if __name__ == "__main__":
     t_max = 5000
     n_t = 5000
     alpha1 = [1.5] #np.linspace(0, 2.5, 100)
-    alpha2 = np.linspace(0, np.pi/2.0, 80)
+    alpha2 = np.linspace(0, np.pi, 80)
 
     n_workers = 80
 
