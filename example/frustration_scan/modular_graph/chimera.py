@@ -58,11 +58,9 @@ if __name__ == "__main__":
         plt.colorbar(c)
         plt.savefig(f"graph_{i}.pdf", bbox_inches="tight")
 
-    alpha_1 = harm_subspace.sum(1)  # [:, 0]
-    initial_phase = alpha_1
+    alpha_1 = harm_subspace.sum(1)
     initial_phase = np.random.random(Gsc.n_edges)
 
-    plt.figure(figsize=(10, 4))
     res = integrate_edge_kuramoto(
         Gsc,
         initial_phase,
@@ -75,11 +73,26 @@ if __name__ == "__main__":
     time = res.t[n_min:]
 
     for i, subset in enumerate(subsets):
-        order = compute_simplicial_order_parameter(result, Gsc, subset)
-        plt.plot(time, order, label=f"subset {i}", lw=0.5)
+        plt.figure(figsize=(10, 4))
+        order, order_node, order_face = compute_simplicial_order_parameter(result, Gsc, subset)
+        plt.plot(time, order, label=f"subset {i}, harm", lw=0.5, c="C0")
+        plt.plot(time, order_node, label=f"subset {i}, node", lw=0.5, c="C1")
+        plt.plot(time, order_face, label=f"subset {i}, face", lw=0.5, c="C2")
 
-    global_order = compute_simplicial_order_parameter(result, Gsc)
-    plt.plot(time, global_order, label=f"harm order", c="r")
+        plt.gca().set_xlim(time[0], time[-1])
+        plt.axhline(1.0, ls="-", c="k", lw=0.5)
+        plt.axhline(0.0, ls="-", c="k", lw=0.5)
+        plt.legend(loc="best")
+        plt.xlabel("time")
+        plt.ylabel("order parameter")
+        plt.legend(loc="best")
+        plt.savefig(f"scan_order_{i}.pdf", bbox_inches="tight")
+
+    plt.figure(figsize=(10, 4))
+    global_order, order_node, order_face = compute_simplicial_order_parameter(result, Gsc)
+    plt.plot(time, global_order, label="harm order", c="C0")
+    plt.plot(time, order_node, label="harm order node", c="C1")
+    plt.plot(time, order_face, label="harm order face", c="C2")
 
     plt.gca().set_xlim(time[0], time[-1])
     plt.axhline(1.0, ls="-", c="k", lw=0.5)
@@ -88,4 +101,4 @@ if __name__ == "__main__":
     plt.xlabel("time")
     plt.ylabel("order parameter")
     plt.legend(loc="best")
-    plt.savefig(f"scan_order.pdf", bbox_inches="tight")
+    plt.savefig("scan_order.pdf", bbox_inches="tight")

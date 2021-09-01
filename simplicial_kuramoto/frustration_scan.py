@@ -160,14 +160,18 @@ def compute_simplicial_order_parameter(result, Gsc, subset=None):
         # if we have all 3 edges in subset
         w2_inv = w2_inv * (abs(Gsc.B1).dot(subset) == 3)
 
-    order = w0_inv.dot(np.cos(Gsc.N0s.dot(result)))
-    norm = w0_inv.sum()
+    order_node = w0_inv.dot(np.cos(Gsc.N0s.dot(result)))
+    norm_node = w0_inv.sum()
 
     if Gsc.W2 is not None:
-        order += w2_inv.dot(np.cos(Gsc.N1.dot(result)))
-        norm += w2_inv.sum()
+        order_face = w2_inv.dot(np.cos(Gsc.N1.dot(result)))
+        norm_face = w2_inv.sum()
 
-    return order / norm
+    return (
+        (order_node + order_face) / (norm_node + norm_face),
+        order_node / norm_node,
+        order_face / norm_face,
+    )
 
 
 def compute_harmonic_projections(result, harm_subspace):
@@ -211,7 +215,7 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
         Gsc, result[0], grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    harm_order = np.mean(compute_simplicial_order_parameter(res, Gsc))
+    harm_order = np.mean(compute_simplicial_order_parameter(res, Gsc)[0])
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
@@ -226,7 +230,7 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
         Gsc, result, grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    harm_order = compute_simplicial_order_parameter(res, Gsc)
+    harm_order = compute_simplicial_order_parameter(res, Gsc)[0]
     mean_harm_order = np.mean(harm_order)
     std_harm_order = np.std(harm_order)
 
@@ -298,7 +302,7 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     plt.plot(alphas, std_harm_order, ".", c="C4", ms=1)
     harm_order_df = _mean(alphas, std_harm_order)
     plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C4", label="std(order)")
-    axs[1].set_ylim(-0.01, max(max(std_harm_order), 0.1))
+    plt.gca().set_ylim(-0.01, max(max(std_harm_order), 0.1))
     axs[1].set_xlim(alphas[0], alphas[-1])
     plt.legend(loc="upper left")
     plt.ylabel("std(order)")
