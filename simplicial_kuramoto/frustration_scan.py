@@ -15,7 +15,6 @@ import scipy as sc
 from tqdm import tqdm
 
 from simplicial_kuramoto.integrators import integrate_edge_kuramoto
-from simplicial_kuramoto.plotting import mod
 
 L = logging.getLogger(__name__)
 
@@ -28,7 +27,7 @@ def _integrate_several_kuramoto(
     n_t,
     harmonic=False,
 ):
-    """ integrate kuramoto """
+    """Integrate several Kuramotos for parallel computations."""
     if harmonic:
         grad_subspace, curl_subspace, harm_subspace = get_subspaces(simplicial_complex)
 
@@ -64,8 +63,25 @@ def scan_frustration_parameters(
     filename="results.pkl",
     harmonic=False,
 ):
-    """Scan frustration parameters alpha_1 and alpha_2 and save phases."""
+    """Scan frustration parameters alpha_1 and alpha_2.
 
+    Args:
+        simplicial_complex (SimplicialComplex): simplicial complex to use
+        alpha1 (array): alpha1 values to scan
+        alpha2 (array): alpha2 values to scan
+        repeats (int): number of repeat of same point with random initial conditions
+        n_workers (int): number of workers for multiprocessing
+        t_max (float): integration time
+        n_t (int): number of timepoints
+        save (bool): save results in a picle
+        folder (str): folder to save results
+        filename (str): name of pickle file
+        harmonic (bool): to use a harmonic alpha1 vector scaled by given alpha1
+
+    Returns:
+        results of the scan
+
+    """
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -96,40 +112,8 @@ def scan_frustration_parameters(
     return results
 
 
-def plot_phases(path, filename):
-    """From result of frustration scan, plot a grid of phase trajectories."""
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
-
-    fig, axs = plt.subplots(len(alpha1), len(alpha2), figsize=(len(alpha2), len(alpha1)))
-    axs = np.flip(axs, axis=0)
-    for i, (idx_a1, idx_a2) in enumerate(itertools.product(range(len(alpha1)), range(len(alpha2)))):
-        plt.sca(axs[idx_a1, idx_a2])
-        result = results[i][0]
-        plt.imshow(
-            mod(result.y),
-            origin="lower",
-            aspect="auto",
-            cmap="twilight_shifted",
-            interpolation="nearest",
-            extent=(result.t[0], result.t[-1], 0, len(result.y)),
-            vmin=-np.pi,
-            vmax=np.pi,
-        )
-        plt.tick_params(left=False, bottom=False, labelleft=False, labelbottom=False)
-
-    for idx_a1 in range(len(alpha1)):
-        axs[idx_a1, 0].set_ylabel(f"{np.round(alpha1[idx_a1], 2)}", fontsize=15)
-    for idx_a2 in range(len(alpha2)):
-        axs[0, idx_a2].set_xlabel(f"{np.round(alpha2[idx_a2], 2)}", fontsize=15)
-
-    fig.text(-0.01, 0.5, "Alpha 1", va="center", rotation="vertical", fontsize=20)
-    fig.text(0.5, -0.01, "Alpha 2", ha="center", fontsize=20)
-    fig.tight_layout()
-    plt.savefig(filename, bbox_inches="tight")
-
-
 def get_subspaces(Gsc):
-    """"Get grad, curl and harm subspaces."""
+    """"Get grad, curl and harm subspaces from simplicial complex."""
     grad_subspace = sc.linalg.orth(Gsc.N0.todense())
     try:
         curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
@@ -141,15 +125,23 @@ def get_subspaces(Gsc):
 
 
 def proj_subspace(vec, subspace):
-    """Project a list of vecs to a subspace."""
+    """Project a list of vecs to a given subspace (from get_subspaces)."""
     proj = np.zeros_like(vec)
     for direction in subspace.T:
         proj += np.outer(vec.dot(direction), direction)
     return np.linalg.norm(proj, axis=1)
 
 
-def compute_simplicial_order_parameter(result, Gsc, subset=None):
-    """Evaluate the simplicial order parameter, or the partial one for subset edges."""
+def compute_order_parameter(result, Gsc, subset=None):
+    """Evaluate the order parameter, or the partial one for subset edges.
+    Args:
+        result (array): result of simulation (edge lenght by timepoints)
+        Gsc (SimplicialComplex): simplicial complex
+        subset (array): bool or int array of edges in the subset to consider
+
+    Returns:
+        total order, node order, face order
+    """
     w0_inv = 1.0 / np.diag(Gsc.W0.toarray())
     if Gsc.W2 is not None:
         w2_inv = 1.0 / np.diag(Gsc.W2.toarray())
@@ -174,48 +166,38 @@ def compute_simplicial_order_parameter(result, Gsc, subset=None):
     )
 
 
-def compute_harmonic_projections(result, harm_subspace):
-    """Compute cosine similarities along harmonic directions."""
-    return [
-        ((result / np.linalg.norm(result, axis=0)[np.newaxis]).T.dot(direction)) ** 2
-        for direction in harm_subspace.T
-    ]
-
-
-def get_projection_slope(
+def get_projection_fit(
     Gsc, res, grad_subspace=None, curl_subspace=None, harm_subspace=None, n_min=0
 ):
-    """Project result on subspaces."""
+    """Project result on subspaces and compute linear fit."""
     if grad_subspace is None:
         grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
     time = res.t[n_min:]
 
     grad = proj_subspace(res.y.T, grad_subspace)[n_min:]
     grad_fit = np.polyfit(time, grad, 1)
-    grad -= grad_fit[0] * time + grad_fit[1]
-    grad -= np.min(grad)
 
     curl = proj_subspace(res.y.T, curl_subspace)[n_min:]
     curl_fit = np.polyfit(time, curl, 1)
-    curl -= curl_fit[0] * time + curl_fit[1]
-    curl -= np.min(curl)
 
     harm = proj_subspace(res.y.T, harm_subspace)[n_min:]
     harm_fit = np.polyfit(time, harm, 1)
-    harm -= harm_fit[0] * time + harm_fit[1]
-    harm -= np.min(harm)
 
-    return grad, curl, harm, grad_fit[0], curl_fit[0], harm_fit[0]
+    return grad, curl, harm, grad_fit, curl_fit, harm_fit
 
 
 def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc):
     res = result[0].y
     n_min = int(np.shape(res)[1] * frac)
     res = res[:, n_min:]
-    _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
+    _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_fit(
         Gsc, result[0], grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    harm_order = np.mean(compute_simplicial_order_parameter(res, Gsc)[0])
+    grad_slope = grad_slope[0]
+    curl_slope = curl_slope[0]
+    harm_slope = harm_slope[0]
+
+    harm_order = np.mean(compute_order_parameter(res, Gsc)[0])
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
@@ -227,10 +209,14 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     res = result.y
     n_min = int(np.shape(res)[1] * frac)
     res = res[:, n_min:]
-    _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_slope(
+    _grad, _curl, _harm, grad_slope, curl_slope, harm_slope = get_projection_fit(
         Gsc, result, grad_subspace, curl_subspace, harm_subspace, n_min
     )
-    harm_order = compute_simplicial_order_parameter(res, Gsc)[0]
+    grad_slope = grad_slope[0]
+    curl_slope = curl_slope[0]
+    harm_slope = harm_slope[0]
+
+    harm_order = compute_order_parameter(res, Gsc)[0]
     mean_harm_order = np.mean(harm_order)
     std_harm_order = np.std(harm_order)
 
@@ -240,9 +226,8 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     return grad, curl, harm, mean_harm_order, std_harm_order
 
 
-def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
-    """Plot grad, curl and harm subspaces projection measures."""
-
+def plot_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
+    """Plot order and projection with fixed alpha1."""
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
@@ -289,7 +274,6 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     plt.plot(harm_df.index, harm_df.data, "-", c="C2", label="harm")
     plt.ylabel("slope")
     plt.legend()
-    # plt.grid(True)
 
     plt.sca(axs[1])
     plt.plot(alphas, mean_harm_order, ".", c="C3", ms=1)
@@ -310,9 +294,8 @@ def plot_harmonic_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
     plt.savefig(filename, bbox_inches="tight")
 
 
-def plot_harmonic_order(path, filename, frac=0.5, eps=1e-5, n_workers=4):
-    """Plot grad, curl and harm subspaces projection measures."""
-
+def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False):
+    """Plot order scan."""
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
@@ -360,17 +343,20 @@ def plot_harmonic_order(path, filename, frac=0.5, eps=1e-5, n_workers=4):
 
     plt.figure(figsize=(5, 4))
     plt.imshow(harm_order, origin="lower", extent=extent)  # , vmax=1)
-    plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
-    plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
+    if with_proj:
+        plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
+        plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
     plt.axis(extent)
     plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
     plt.xlabel(r"$\alpha_2$")
     plt.colorbar(label="Harmonic order", fraction=0.02)
-    plt.suptitle(
-        f"dim(grad) = {np.shape(grad_subspace)[1]}, dim(curl) = {np.shape(curl_subspace)[1]}, dim(harm) = {np.shape(harm_subspace)[1]}",
-        fontsize=9,
-    )
+
+    ng = np.shape(grad_subspace)[1]
+    nc = np.shape(curl_subspace)[1]
+    nh = np.shape(harm_subspace)[1]
+    plt.suptitle(f"dim(grad) = {ng}, dim(curl) = {nc}, dim(harm) = {nh}", fontsize=9)
+
     plt.savefig(filename, bbox_inches="tight")
 
 
@@ -434,10 +420,10 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
     plt.xlabel(r"$\alpha_2$")
     plt.colorbar(label="Harmonic slope", fraction=0.02)
 
-    plt.suptitle(
-        f"dim(grad) = {np.shape(grad_subspace)[1]}, dim(curl) = {np.shape(curl_subspace)[1]}, dim(harm) = {np.shape(harm_subspace)[1]}",
-        fontsize=9,
-    )
+    ng = np.shape(grad_subspace)[1]
+    nc = np.shape(curl_subspace)[1]
+    nh = np.shape(harm_subspace)[1]
+    plt.suptitle(f"dim(grad) = {ng}, dim(curl) = {nc}, dim(harm) = {nh}", fontsize=9)
 
     fig.tight_layout()
 

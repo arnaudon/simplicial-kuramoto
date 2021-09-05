@@ -12,8 +12,7 @@ if __name__ == "__main__":
     G.add_edge(2, 0, weight=1, edge_com=0)
 
     Gsc = SimplicialComplex(graph=G)
-    Gsc.flip_edge_orientation(1)
-    Gsc.flip_edge_orientation(0)
+    Gsc.flip_edge_orientation([0, 1])
 
     alpha1 = np.linspace(0, 2.5, 100)
     alpha2 = np.linspace(0, np.pi / 2.0, 100)
