@@ -23,7 +23,7 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                 G.add_edge(
                     (i * Nn) + j,
                     (i * Nn) + k,
-                    weight=intra_weight+np.random.normal(0, 0.1),
+                    weight=intra_weight + np.random.normal(0, 0.1),
                     community=str((i, i)),
                 )
                 node_assign[(i * Nn) + j] = str(i)
@@ -35,8 +35,7 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                 source = np.random.randint(i * Nn + 1, (i + 1) * Nn, Nie).tolist()
                 sink = np.random.randint(j * (Nn + 1) + 1, (j + 1) * Nn, Nie).tolist()
                 for e in range(Nie):
-                    G.add_edge(source[e], sink[e], weight=inter_weight,
-                               community=str((i, j)))
+                    G.add_edge(source[e], sink[e], weight=inter_weight, community=str((i, j)))
 
     else:
         Neig = np.linspace(1, Nn, Nn).astype(int)
@@ -55,17 +54,19 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                     for j in range(bonus):
 
                         a = Neig.tolist()[j] + c1 * Nn
-                        b=  np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn
+                        b = np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn
                         # this trick below is to get a symetric 3-module graph
                         ok = False
-                        if c1==0 and b==11:
+                        if c1 == 0 and b == 11:
                             b = 12
-                            ok=True
-                        elif c1==0 and b==12:# and ok:
+                            ok = True
+                        elif c1 == 0 and b == 12:  # and ok:
                             b = 11
                             ok = False
-                        G.add_edge(a, b,
-                            weight=inter_weight+np.random.normal(0, 0.1),
+                        G.add_edge(
+                            a,
+                            b,
+                            weight=inter_weight + np.random.normal(0, 0.1),
                             community=str((c1, c2)),
                         )
     nx.set_node_attributes(G, node_assign, "community")
@@ -135,5 +136,6 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
                 edge_list.append(edge)
     graph = nx.Graph()
     graph.add_edges_from(edge_list)
-
+    for n, p in zip(graph.nodes, points):
+        graph.nodes[n]["pos"] = p
     return graph, points

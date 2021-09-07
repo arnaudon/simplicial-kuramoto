@@ -1,9 +1,8 @@
 """Plotting functions."""
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.linalg import null_space
 
-# from utils import *
+import networkx as nx
 
 
 def mod(x):
@@ -40,103 +39,24 @@ def plot_edge_kuramoto(edge_results):
     plt.colorbar()
 
 
-def plot_flow(initial_phase, simplicial_complex, result, plotname="Test"):
-    """ Some outputs (curl, div, etc ...) are only useful for understanding what is happening """
-    phase = result.y
-
-    B0 = simplicial_complex.node_incidence_matrix
-    B1 = simplicial_complex.edge_incidence_matrix
-
-    # op=order_parameter(phase, 4, 1) # that is in the utils.py
-    # plt.figure()
-    # plt.title('Order parameter')
-    # plt.plot(op[0,:])
-
-    if B1 is None:
-        print("theta_0: ", initial_phase)
-        print("theta_final: ", phase[:, -1])
-        print(
-            "theta_final: ",
-            np.mod(np.around(phase[:, -1], 10), np.around(2 * np.pi, 10)),
-        )
-
-        Div = np.mod(np.around(B0.T.dot(phase), 10), np.around(2 * np.pi, 10))
-        print("Div: ", Div[:, -1])
-        print("Curl: no curl")
-
-        L1 = -B0.dot(B0.T)
-        print("L1 theta: ", L1.dot(phase[:, -1]))
-        print(
-            "L1 theta: ",
-            np.mod(np.around(L1.dot(phase[:, -1]), 10), np.around(2 * np.pi, 10)),
-        )
-
-        # w, v=eigs(L1)
-        # ns_ind=np.where(w<10e-8)
-        # print("dim(Ker(L1)): ", len(ns_ind)
-
-        # not ideal, would be better in principle to stay in sparse representation,
-        # but scipy.sparse.linalg.eigs does not work
-        ns = null_space(L1.toarray())
-        print("dim(Ker(L1)): ", ns.shape[1])
-        print("Ker(L1): ", ns)
-    else:
-        print("theta_0: ", initial_phase)
-        print("theta_final: ", phase[:, -1])
-        print(
-            "theta_final: ",
-            np.mod(np.around(phase[:, -1], 10), np.around(2 * np.pi, 10)),
-        )
-
-        Div = np.mod(np.around(B0.T.dot(phase), 10), np.around(2 * np.pi, 10))
-        Curl = np.mod(np.around(B1.dot(phase), 10), np.around(2 * np.pi, 10))
-        print("Div: ", Div[:, -1])
-        print("Curl: ", Curl[:, -1])
-
-        L1 = -B0.dot(B0.T) - B1.T.dot(B1)
-        print("L1 theta: ", L1.dot(phase[:, -1]))
-        print(
-            "L1 theta: ",
-            np.mod(np.around(L1.dot(phase[:, -1]), 10), np.around(2 * np.pi, 10)),
-        )
-
-        # w, v=eigs(L1)
-        # ns_ind=np.where(w<10e-8)
-        # print("dim(Ker(L1)): ", len(ns_ind)
-
-        # not ideal, would be better in principle to stay in sparse representation,
-        # but scipy.sparse.linalg.eigs does not work
-        ns = null_space(L1.toarray())
-        print("dim(Ker(L1)): ", ns.shape[1])
-        print("Ker(L1): ", ns)
-
-
-#     plt.figure()
-#     plt.imshow(Div, aspect='auto',cmap='bwr')
-#     plt.title(plotname+' divergence')
-#     plt.colorbar()
-#     plt.figure()
-#     plt.imshow(Curl, aspect='auto',cmap='bwr')
-#     plt.title(plotname+' curl')
-#     plt.colorbar()
-
-
-def plot_order_parameter(phases, return_op=False, plot=True):
-    N = phases.shape[0]
-    op = np.zeros((phases.shape[1]))
-    op = np.absolute(np.exp(1j * phases).sum(0)) / N
-    if plot:
-        plt.figure()
-        plt.plot(op)
-        plt.title(op[-1])
-    if return_op:
-        return op
-
-
-def plot_unit_circle(phases):
-    t = np.linspace(0, 2 * np.pi, 1000)
+def draw_simplicial_complex(Gsc, filename=None, with_labels=True):
+    """Draw a simplicial complex."""
     plt.figure()
-    plt.plot(np.cos(t), np.sin(t), "b", linewidth=1)
-    plt.plot([0, 0], [-1, 1], "b-.", linewidth=0.5)
-    plt.plot([-1, 1], [0, 0], "b-.", linewidth=0.5)
-    plt.plot(np.cos(phases[:, -1]), np.sin(phases[:, -1]), "o")
+    ax = plt.gca()
+    points = np.array([Gsc.graph.nodes[n]["pos"] for n in Gsc.graph])
+    graph = nx.DiGraph(Gsc.edgelist)
+
+    for i, face in enumerate(Gsc.faces):
+        ax.fill(*points[face].T, c="0.8")
+        if with_labels:
+            ax.text(*points[face].mean(0), i)
+
+    nx.draw(graph, pos=points)
+    if with_labels:
+        nx.draw_networkx_labels(graph, pos=points)
+        nx.draw_networkx_edge_labels(
+            graph, pos=points, edge_labels={e: i for i, e in enumerate(Gsc.graph.edges)}
+        )
+
+    if filename is not None:
+        plt.savefig(filename, bbox_inches="tight")

@@ -15,7 +15,7 @@ if __name__ == "__main__":
     Gsc.flip_edge_orientation([0, 1])
 
     alpha1 = np.linspace(0, 2.5, 100)
-    alpha2 = np.linspace(0, np.pi / 2.0, 100)
+    alpha2 = np.linspace(0, np.pi / 2.0, 200)
     n_repeats = 1
     t_max = 500
     n_t = 1000

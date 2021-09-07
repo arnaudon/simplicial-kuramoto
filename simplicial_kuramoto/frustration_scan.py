@@ -341,8 +341,8 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
         vec = np.diff(vec, axis=axis) > 0
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
-    plt.figure(figsize=(5, 4))
-    plt.imshow(harm_order, origin="lower", extent=extent)  # , vmax=1)
+    plt.figure()  # figsize=(5, 4))
+    plt.imshow(harm_order, origin="lower", extent=extent, aspect="auto")
     if with_proj:
         plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
         plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
@@ -350,7 +350,7 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
     plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
     plt.xlabel(r"$\alpha_2$")
-    plt.colorbar(label="Harmonic order", fraction=0.02)
+    plt.colorbar(label="Order", fraction=0.02)
 
     ng = np.shape(grad_subspace)[1]
     nc = np.shape(curl_subspace)[1]
@@ -389,7 +389,7 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
 
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
-    fig = plt.figure(figsize=(4, 6))
+    fig = plt.figure(figsize=(5, 8))
 
     gs = fig.add_gridspec(3, hspace=0)
     axs = gs.subplots(sharex=True, sharey=True)
@@ -399,21 +399,21 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
 
     plt.sca(axs[0])
 
-    plt.imshow(grad, origin="lower", extent=extent, vmin=0)
+    plt.imshow(grad, origin="lower", extent=extent, vmin=0, aspect="auto")
     plt.axis(extent)
     plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
     plt.colorbar(label="Gradient slope", fraction=0.02)
 
     plt.sca(axs[1])
-    plt.imshow(curl, origin="lower", extent=extent, vmin=0)
+    plt.imshow(curl, origin="lower", extent=extent, vmin=0, aspect="auto")
     plt.ylabel(r"$\alpha_1$")
     plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.axis(extent)
     plt.colorbar(label="Curl slope", fraction=0.02)
 
     plt.sca(axs[2])
-    plt.imshow(harm, origin="lower", extent=extent, vmin=0)
+    plt.imshow(harm, origin="lower", extent=extent, vmin=0, aspect="auto")
     plt.axis(extent)
     plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
