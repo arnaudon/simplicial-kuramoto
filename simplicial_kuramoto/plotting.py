@@ -1,6 +1,7 @@
 """Plotting functions."""
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib import cm, colors
 
 import networkx as nx
 
@@ -39,19 +40,36 @@ def plot_edge_kuramoto(edge_results):
     plt.colorbar()
 
 
-def draw_simplicial_complex(Gsc, filename=None, with_labels=True):
+def draw_simplicial_complex(
+    Gsc,
+    filename=None,
+    with_labels=True,
+    face_colors=None,
+    face_vmin=0,
+    face_vmax=np.pi / 2.0,
+    face_cmap="Blues",
+):
     """Draw a simplicial complex."""
     plt.figure()
     ax = plt.gca()
     points = np.array([Gsc.graph.nodes[n]["pos"] for n in Gsc.graph])
     graph = nx.DiGraph(Gsc.edgelist)
 
+    if face_colors is not None:
+        cmap = cm.get_cmap(face_cmap)
+        norm = colors.Normalize(vmin=face_vmin, vmax=face_vmax)
+
     for i, face in enumerate(Gsc.faces):
-        ax.fill(*points[face].T, c="0.8")
+        c = cmap(norm(face_colors[i])) if face_colors is not None else "0.8"
+        ax.fill(*points[face].T, c=c)
         if with_labels:
             ax.text(*points[face].mean(0), i)
 
+    if face_colors is not None:
+        plt.colorbar(cm.ScalarMappable(cmap=cmap, norm=norm))
+
     nx.draw(graph, pos=points)
+
     if with_labels:
         nx.draw_networkx_labels(graph, pos=points)
         nx.draw_networkx_edge_labels(
