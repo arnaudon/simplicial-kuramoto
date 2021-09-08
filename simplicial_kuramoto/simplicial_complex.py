@@ -264,13 +264,6 @@ class SimplicialComplex:
         return self._liftted_N0sn
 
     @property
-    def lifted_L0(self):
-        """Get lifted node laplacian."""
-        if self._lifted_L0 is None:
-            self._lifted_L0 = self.lifted_N0sn.dot(self.lifted_N0)
-        return self._lifted_L0
-
-    @property
     def lifted_N1(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_N1 is None:
@@ -283,13 +276,3 @@ class SimplicialComplex:
         if self._lifted_N1sn is None:
             self._liftted_N1sn = neg(self.N1s.dot(self.V2.T))
         return self._liftted_N1sn
-
-    @property
-    def lifted_L1(self):
-        """Get lifted edge laplacian."""
-        if self._lifted_L1 is None:
-            self._lifted_L1 = self.N0.dot(self.N0s)
-
-            if self.W2 is not None:
-                self._lifted_L1 += self.lifted_N1sn.dot(self.lifted_N1)
-        return self._lifted_L1

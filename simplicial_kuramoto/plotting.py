@@ -45,7 +45,7 @@ def draw_simplicial_complex(
     filename=None,
     with_labels=True,
     face_colors=None,
-    face_vmin=0,
+    face_vmin=0.0,
     face_vmax=np.pi / 2.0,
     face_cmap="Blues",
 ):
@@ -57,7 +57,10 @@ def draw_simplicial_complex(
 
     if face_colors is not None:
         cmap = cm.get_cmap(face_cmap)
-        norm = colors.Normalize(vmin=face_vmin, vmax=face_vmax)
+        norm = colors.Normalize(
+            vmin=face_vmin if face_vmin is not None else min(face_colors),
+            vmax=face_vmax if face_vmax is not None else max(face_colors),
+        )
 
     for i, face in enumerate(Gsc.faces):
         c = cmap(norm(face_colors[i])) if face_colors is not None else "0.8"
