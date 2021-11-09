@@ -1,1 +1,0 @@
-simplicial_kuramoto
