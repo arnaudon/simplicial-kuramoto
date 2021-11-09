@@ -1,16 +1,16 @@
 """Tools to scan frustration parameters."""
-import multiprocessing
-
 import itertools
 import logging
+import multiprocessing
 import os
 import pickle
 from functools import partial
 from multiprocessing import Pool
-import pandas as pd
 
 import matplotlib.pyplot as plt
+import nolds
 import numpy as np
+import pandas as pd
 import scipy as sc
 from tqdm import tqdm
 
@@ -29,10 +29,10 @@ def _integrate_several_kuramoto(
 ):
     """Integrate several Kuramotos for parallel computations."""
     if harmonic:
-        grad_subspace, curl_subspace, harm_subspace = get_subspaces(simplicial_complex)
+        harm_subspace = get_subspaces(simplicial_complex)[2]
 
     edge_results = []
-    for r in range(repeats):
+    for _ in range(repeats):
         initial_phase = np.random.random(simplicial_complex.n_edges)
 
         edge_results.append(
@@ -113,7 +113,7 @@ def scan_frustration_parameters(
 
 
 def get_subspaces(Gsc):
-    """"Get grad, curl and harm subspaces from simplicial complex."""
+    """ "Get grad, curl and harm subspaces from simplicial complex."""
     grad_subspace = sc.linalg.orth(Gsc.N0.todense())
     try:
         curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
@@ -208,20 +208,24 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     return grad, curl, harm, harm_order
 
 
-def plot_lyapunov(path, filename="lyap.pdf"):
+def plot_lyapunov(path, filename="lyap.pdf", nolds_kwargs=None):
+    """Compute and plot largest lyapunov exponents.
 
-    import nolds
+    The computation is based on nolds package, and yse nolds_kwargs to configure it.
+    """
+    if nolds_kwargs is None:
+        nolds_kwargs = {"trajectory_len": 10, "lag": 30, "min_tsep": 20, "fit": "poly"}
 
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+    with open(path, "rb") as pick:
+        Gsc, results, _, alpha2 = pickle.load(pick)
+
     lyaps = []
     for i in tqdm(range(Gsc.n_edges)):
         lyapunov = []
         for result in results[1:-1]:
             lyap = []
             for res in result:
-                lyap.append(
-                    nolds.lyap_r(res.y[i], trajectory_len=10, lag=30, min_tsep=20, fit="poly")
-                )
+                lyap.append(nolds.lyap_r(res.y[i], **nolds_kwargs))
             lyapunov.append(np.mean(lyap))
         lyaps.append(lyapunov)
     lyaps = np.array(lyaps)
@@ -237,7 +241,7 @@ def plot_lyapunov(path, filename="lyap.pdf"):
     )
     plt.gca().set_xlim(0, np.pi / 2)
     plt.gca().set_ylim(-0.002, 0.027)
-    plt.axhline(0, c='k', ls='--', lw=0.5)
+    plt.axhline(0, c="k", ls="--", lw=0.5)
     plt.xlabel(r"$\alpha_2$")
     plt.ylabel(r"mean($\lambda$)")
     plt.savefig(filename, bbox_inches="tight")
@@ -265,9 +269,13 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     return grad, curl, harm, mean_harm_order, std_harm_order
 
 
-def plot_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_std=False):
+def plot_order_1d(
+    path, filename, frac=0.5, eps=1e-5, with_std=False
+):  # pylint: disable=too-many-statements
     """Plot order and projection with fixed alpha1."""
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+
+    with open(path, "rb") as pick:
+        Gsc, results, _, alpha2 = pickle.load(pick)
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
     grad = []
@@ -351,7 +359,9 @@ def plot_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_std=Fals
 
 def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False):
     """Plot order scan."""
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+
+    with open(path, "rb") as pick:
+        Gsc, results, alpha1, alpha2 = pickle.load(pick)
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
     grad = np.empty([len(alpha1), len(alpha2)])
@@ -417,8 +427,9 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
 
 def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
     """Plot grad, curl and harm subspaces projection measures."""
+    with open(path, "rb") as pick:
+        Gsc, results, alpha1, alpha2 = pickle.load(pick)
 
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
     grad = np.empty([len(alpha1), len(alpha2)])

@@ -1,13 +1,20 @@
 """Graph generation."""
-import networkx as nx
 import itertools
+
+import networkx as nx
 import numpy as np
 from scipy import spatial
 
+# pylint: disable=too-many-nested-blocks,too-many-branches
+
 
 def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
-    """
-    Produces a modular network with Nc clique modules of size Nn and all connected by Nie edges, in a linear way
+    """Creates a modular network.
+
+    The network is constructed with Nc clique modules of size Nn and all connected
+    by Nie edges, in a linear way.
+
+    Args:
         Nc: number of modules
         Nn: number of nodes per module
         Nie: number of edges between modules (added linearly), has to be smaller than Nn(Nn-1)/2
@@ -15,7 +22,7 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
 
     G = nx.Graph()
     G.add_nodes_from(np.linspace(1, Nc * Nn, Nc * Nn).astype(int).tolist())
-    node_assign, edge_assign = {}, {}
+    node_assign = {}
     # fully connected modules
     for i in range(Nc):
         for j in range(1, Nn + 1):
@@ -52,17 +59,13 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
                                 community=str((c1, c2)),
                             )
                     for j in range(bonus):
-
                         a = Neig.tolist()[j] + c1 * Nn
                         b = np.roll(Neig, -(nr)).tolist()[j] + c2 * Nn
                         # this trick below is to get a symetric 3-module graph
-                        ok = False
                         if c1 == 0 and b == 11:
                             b = 12
-                            ok = True
                         elif c1 == 0 and b == 12:  # and ok:
                             b = 11
-                            ok = False
                         G.add_edge(
                             a,
                             b,
@@ -74,13 +77,14 @@ def modular_graph(Nc, Nn, Nie, rando=True, inter_weight=0.5, intra_weight=0.5):
 
 
 def ring_of_rings(num_rings, ring_size):
+    """Create ring of rings network."""
 
     G = nx.Graph()
     for i in range(num_rings):
         gc = nx.generators.classic.circulant_graph(ring_size, [1])
         edges = gc.edges()
         for edge in edges:
-            edge_ = tuple([(i * ring_size) + x for x in edge])
+            edge_ = [(i * ring_size) + x for x in edge]
             G.add_edge(edge_[0], edge_[1], community=i)
 
         G.add_edge(
@@ -101,12 +105,12 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
     if centres is not None:
         for i in range(len(centres)):
             points = [p for p in points if np.linalg.norm(p - centres[i]) > radii[i]]
-        for i in range(len(centres)):
+        for i, (centre, radius) in enumerate(zip(centres, radii)):
             points += list(
                 np.vstack(
                     [
-                        centres[i][0] + radii[i] * np.sin(x),
-                        centres[i][1] + radii[i] * np.cos(x),
+                        centre[0] + radius * np.sin(x),
+                        centre[1] + radius * np.cos(x),
                     ]
                 ).T
             )

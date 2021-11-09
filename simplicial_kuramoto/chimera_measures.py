@@ -1,4 +1,7 @@
-"""Various measure of synchronisation for chimera detection."""
+"""Various measure of synchronisation for chimera detection on node Kuramoto.
+
+WARNING: not used and experimental, so be careful.
+"""
 import pickle
 from itertools import combinations, product
 
@@ -9,7 +12,7 @@ import pandas as pd
 
 
 def module_order_parameter(theta, community_assignment):
-
+    """Order parmater."""
     Nc = len(np.unique(community_assignment))
     Nt = theta.shape[1]
 
@@ -25,7 +28,7 @@ def module_order_parameter(theta, community_assignment):
 
 
 def module_gradient_parameter(theta, community_assignment):
-
+    "Gradient parameter." ""
     phase_gradient = np.zeros_like(theta)
     for i in range(theta.shape[0]):
         phase_gradient[i, :] = np.gradient(theta[i, :])
@@ -44,7 +47,7 @@ def module_gradient_parameter(theta, community_assignment):
 
 
 def coalition_entropy(order_parameters, gamma=0.8):
-
+    """Coalition entropy."""
     coalitions = (order_parameters[:-1] > gamma).T * 1
     unique_coalitions = np.unique(coalitions, axis=0)
     Nt = order_parameters.shape[1]
@@ -62,14 +65,14 @@ def coalition_entropy(order_parameters, gamma=0.8):
 
 
 def pairwise_synchronisation(theta, community_assignment):
-
+    """Pairwise synchronisation."""
     comms = np.unique(community_assignment)
     Nt = theta.shape[1]
     Nc = len(np.unique(community_assignment))
     op = np.zeros((Nc, Nt))
 
     cnt = 0
-    for c1, c2 in [comb for comb in combinations(comms, 2)]:
+    for c1, c2 in combinations(comms, 2):
         ind1 = np.argwhere(community_assignment == c1)
         ind2 = np.argwhere(community_assignment == c2)
 
@@ -93,12 +96,11 @@ def shanahan_indices(order_parameters):
     """
     lamb = np.var(order_parameters, axis=1).mean()
     chi = np.var(order_parameters, axis=0).mean()
-
     return lamb, chi
 
 
 def shanahan_metrics(results, alpha1, alpha2, edge_community_assignment):
-
+    """Shanahan metrics."""
     gms_matrix = pd.DataFrame()
     chi_matrix = pd.DataFrame()
     ce_matrix = pd.DataFrame()
@@ -112,9 +114,9 @@ def shanahan_metrics(results, alpha1, alpha2, edge_community_assignment):
         ceg_ = []
 
         for result in results[i]:
-            op, global_order_parameter = module_order_parameter(result.y, edge_community_assignment)
+            op, _ = module_order_parameter(result.y, edge_community_assignment)
             gms, chi = shanahan_indices(op)
-            gop, phase_gradient = module_gradient_parameter(result.y, edge_community_assignment)
+            gop, _ = module_gradient_parameter(result.y, edge_community_assignment)
 
             gms_.append(gms)
             chi_.append(chi)
@@ -130,8 +132,10 @@ def shanahan_metrics(results, alpha1, alpha2, edge_community_assignment):
 
 
 def plot_measures(path, filename, marker=None):
+    """Plot some of the above measures."""
 
-    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+    with open(path, "rb") as pkl:
+        Gsc, results, alpha1, alpha2 = pickle.load(pkl)
     edge_community_assignment = np.array(
         list(nx.get_edge_attributes(Gsc.graph, "edge_com").values())
     )

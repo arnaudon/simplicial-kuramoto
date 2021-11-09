@@ -48,10 +48,7 @@ class SimplicialComplex:
         self._L0 = None
         self._L1 = None
 
-        self._V1 = None
         self._V2 = None
-        self._lifted_N0 = None
-        self._lifted_N0sn = None
         self._lifted_N1 = None
         self._lifted_N1sn = None
 
@@ -63,7 +60,7 @@ class SimplicialComplex:
         else:
             self.face_weights = face_weights
 
-    def set_faces(self, faces=None, no_faces=False):
+    def set_faces(self, faces=None):
         """Set faces from list of triangles if provided, or all triangles."""
         if self.no_faces:
             self.faces = None
@@ -99,11 +96,7 @@ class SimplicialComplex:
         self._W2 = None
         self._L0 = None
         self._L1 = None
-
-        self._V1 = None
         self._V2 = None
-        self._lifted_N0 = None
-        self._lifted_N0sn = None
         self._lifted_N1 = None
         self._lifted_N1sn = None
 
@@ -113,9 +106,9 @@ class SimplicialComplex:
     def W0(self):
         """Create node weight matrix."""
         if self._W0 is None:
-            try:
+            if "weight" in self.graph.nodes[list(self.graph)[0]]:
                 node_weights = [self.graph.nodes[u]["weight"] for u in self.graph]
-            except:
+            else:
                 node_weights = np.ones(self.n_nodes)
             self._W0 = sc.sparse.spdiags(node_weights, 0, self.n_nodes, self.n_nodes)
         return self._W0
@@ -124,9 +117,9 @@ class SimplicialComplex:
     def W1(self):
         """Create edge weight matrix."""
         if self._W1 is None:
-            try:
+            if "weight" in self.graph.nodes[list(self.graph)[0]]:
                 edge_weights = [self.graph[u][v]["weight"] for u, v in self.graph.edges]
-            except:
+            else:
                 edge_weights = np.ones(self.n_edges)
             self._W1 = sc.sparse.spdiags(edge_weights, 0, self.n_edges, self.n_edges)
         return self._W1
@@ -145,20 +138,6 @@ class SimplicialComplex:
         if self._B0 is None:
             self._B0 = nx.incidence_matrix(self.graph, edgelist=self.edgelist, oriented=True).T
         return self._B0
-
-    @property
-    def B0_p(self):
-        """Create the positive part of incidence matrices."""
-        if self._B0_p is None:
-            self._B0_p = pos(self.B0)
-        return self._B0_p
-
-    @property
-    def B0_n(self):
-        """Create the negative part of incidence matrices."""
-        if self._B0_n is None:
-            self._B0_n = neg(self.B0)
-        return self._B0_n
 
     @property
     def N0(self):
@@ -230,15 +209,8 @@ class SimplicialComplex:
         return self._L1
 
     @property
-    def V1(self):
-        if self._V1 is None:
-            self._V1 = sc.sparse.csr_matrix(
-                np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
-            )
-        return self._V1
-
-    @property
     def V2(self):
+        """Lift operator on faces."""
         if self._V2 is None:
             self._V2 = sc.sparse.csr_matrix(
                 np.concatenate((np.eye(self.n_faces), -np.eye(self.n_faces)), axis=0)
@@ -246,29 +218,15 @@ class SimplicialComplex:
         return self._V2
 
     @property
-    def lifted_N0(self):
-        """Create lifted version of incidence matrices."""
-        if self._lifted_N0 is None:
-            self._liftted_N0 = self.V1.dot(self.N0)
-        return self._liftted_N0
-
-    @property
-    def lifted_N0sn(self):
-        """Create lifted version of incidence matrices."""
-        if self._lifted_N0sn is None:
-            self._liftted_N0sn = neg(self.N0s.dot(self.V1.T))
-        return self._liftted_N0sn
-
-    @property
     def lifted_N1(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_N1 is None:
-            self._liftted_N1 = self.V2.dot(self.N1)
-        return self._liftted_N1
+            self._lifted_N1 = self.V2.dot(self.N1)
+        return self._lifted_N1
 
     @property
     def lifted_N1sn(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_N1sn is None:
-            self._liftted_N1sn = neg(self.N1s.dot(self.V2.T))
-        return self._liftted_N1sn
+            self._lifted_N1sn = neg(self.N1s.dot(self.V2.T))
+        return self._lifted_N1sn

@@ -1,13 +1,21 @@
 """Numerical integrators."""
 from functools import partial
-from tqdm import tqdm
 
 import numpy as np
 from scipy.integrate import solve_ivp
+from tqdm import tqdm
 
 
-def node_simplicial_kuramoto(time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0, sigma=1.0):
+def node_simplicial_kuramoto(
+    time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0, sigma=1.0, pbar=None, state=None
+):
     """Node simplicial kuramoto, or classical Kuramoto."""
+    if pbar is not None:
+        last_t, dt = state
+        n = int((time - last_t) / dt)
+        pbar.update(n)
+        state[0] = last_t + dt * n
+
     return -alpha_0 - sigma * simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
