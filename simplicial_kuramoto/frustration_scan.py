@@ -158,11 +158,14 @@ def compute_order_parameter(result, Gsc, subset=None):
     if Gsc.W2 is not None:
         order_face = w2_inv.dot(np.cos(Gsc.N1.dot(result)))
         norm_face = w2_inv.sum()
+    else:
+        order_face = 0
+        norm_face = 0
 
     return (
         (order_node + order_face) / (norm_node + norm_face),
         order_node / norm_node,
-        order_face / norm_face,
+        order_face / norm_face if norm_face > 0 else 0,
     )
 
 
@@ -205,6 +208,42 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     return grad, curl, harm, harm_order
 
 
+def plot_lyapunov(path, filename="lyap.pdf"):
+
+    import nolds
+
+    Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
+    lyaps = []
+    for i in tqdm(range(Gsc.n_edges)):
+        lyapunov = []
+        for result in results[1:-1]:
+            lyap = []
+            for res in result:
+                lyap.append(
+                    nolds.lyap_r(res.y[i], trajectory_len=10, lag=30, min_tsep=20, fit="poly")
+                )
+            lyapunov.append(np.mean(lyap))
+        lyaps.append(lyapunov)
+    lyaps = np.array(lyaps)
+
+    plt.figure(figsize=(4, 2))
+    plt.plot(alpha2[1:-1], np.mean(lyaps, axis=0), "k-", lw=2)
+    plt.fill_between(
+        alpha2[1:-1],
+        np.percentile(lyaps, 25, axis=0),
+        np.percentile(lyaps, 75, axis=0),
+        color="k",
+        alpha=0.5,
+    )
+    plt.gca().set_xlim(0, np.pi / 2)
+    plt.gca().set_ylim(-0.002, 0.027)
+    plt.axhline(0, c='k', ls='--', lw=0.5)
+    plt.xlabel(r"$\alpha_2$")
+    plt.ylabel(r"mean($\lambda$)")
+    plt.savefig(filename, bbox_inches="tight")
+    plt.show()
+
+
 def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc):
     res = result.y
     n_min = int(np.shape(res)[1] * frac)
@@ -226,7 +265,7 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     return grad, curl, harm, mean_harm_order, std_harm_order
 
 
-def plot_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
+def plot_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_std=False):
     """Plot order and projection with fixed alpha1."""
     Gsc, results, alpha1, alpha2 = pickle.load(open(path, "rb"))
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
@@ -255,42 +294,58 @@ def plot_order_1d(path, filename, frac=0.5, eps=1e-5, n_workers=4):
         df["data"] = data
         return df.groupby("alpha").mean().sort_values(by="alpha")
 
+    def _std(alphas, data):
+        df = pd.DataFrame()
+        df["alpha"] = alphas
+        df["data"] = data
+        return df.groupby("alpha").std().sort_values(by="alpha")
+
     fig = plt.figure(figsize=(4, 4))
     gs = fig.add_gridspec(2, hspace=0)
     axs = gs.subplots(sharex=True)
 
     plt.sca(axs[0])
 
-    plt.plot(alphas, grad, ".", c="C0", ms=1)
     grad_df = _mean(alphas, grad)
+    if with_std:
+        std_grad_df = _std(alphas, grad)
+        plt.errorbar(grad_df.index, grad_df.data, yerr=std_grad_df.data, c="C0")
     plt.plot(grad_df.index, grad_df.data, "-", c="C0", label="grad")
 
-    plt.plot(alphas, curl, ".", c="C1", ms=1)
     curl_df = _mean(alphas, curl)
+    if with_std:
+        std_curl_df = _std(alphas, curl)
+        plt.errorbar(curl_df.index, curl_df.data, yerr=std_curl_df.data, c="C1")
     plt.plot(curl_df.index, curl_df.data, "-", c="C1", label="curl")
 
-    plt.plot(alphas, harm, ".", c="C2", ms=1)
     harm_df = _mean(alphas, harm)
+    if with_std:
+        std_harm_df = _std(alphas, harm)
+        plt.errorbar(harm_df.index, harm_df.data, yerr=std_harm_df.data, c="C2")
     plt.plot(harm_df.index, harm_df.data, "-", c="C2", label="harm")
     plt.ylabel("slope")
     plt.legend()
 
     plt.sca(axs[1])
-    plt.plot(alphas, mean_harm_order, ".", c="C3", ms=1)
     harm_order_df = _mean(alphas, mean_harm_order)
+    if with_std:
+        std_harm_df = _std(alphas, mean_harm_order)
+        plt.errorbar(harm_order_df.index, harm_order_df.data, yerr=std_harm_df.data, c="C3")
     plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C3", label="mean(order)")
 
     plt.ylabel("mean(order)")
     plt.legend(loc="upper right")
+    plt.xlabel(r"$\alpha_2$")
     plt.twinx()
-    plt.plot(alphas, std_harm_order, ".", c="C4", ms=1)
     harm_order_df = _mean(alphas, std_harm_order)
+    if with_std:
+        std_harm_df = _std(alphas, std_harm_order)
+        plt.errorbar(harm_order_df.index, harm_order_df.data, yerr=std_harm_df.data, c="C4")
     plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C4", label="std(order)")
     plt.gca().set_ylim(-0.01, max(max(std_harm_order), 0.1))
     axs[1].set_xlim(alphas[0], alphas[-1])
     plt.legend(loc="upper left")
     plt.ylabel("std(order)")
-    plt.xlabel(r"$alpha_2$")
     plt.savefig(filename, bbox_inches="tight")
 
 

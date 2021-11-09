@@ -71,7 +71,7 @@ if __name__ == "__main__":
         Gsc,
         folder="./results/",
         filename=f"Fig_2_example_1_1.pkl",
-        alpha1=[1.0],
+        alpha1=[0.0],
         alpha2=np.linspace(0, np.pi / 2.0, n_alpha2),
         repeats=repeats,
         n_workers=n_workers,
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         Gsc,
         folder="./results/",
         filename=f"Fig_2_example_1_2.pkl",
-        alpha1=[1.0],
+        alpha1=[0.0],
         alpha2=np.linspace(0, np.pi / 2.0, n_alpha2),
         repeats=repeats,
         n_workers=n_workers,
@@ -103,7 +103,7 @@ if __name__ == "__main__":
         Gsc,
         folder="./results/",
         filename=f"Fig_2_example_1_3.pkl",
-        alpha1=[1.0],
+        alpha1=[0.0],
         alpha2=np.linspace(0, np.pi / 2.0, n_alpha2),
         repeats=repeats,
         n_workers=n_workers,
@@ -119,7 +119,24 @@ if __name__ == "__main__":
         Gsc,
         folder="./results/",
         filename=f"Fig_2_example_1_4.pkl",
-        alpha1=[1.0],
+        alpha1=[0.0],
+        alpha2=np.linspace(0, np.pi / 2.0, n_alpha2),
+        repeats=repeats,
+        n_workers=n_workers,
+        t_max=t_max,
+        n_t=n_t,
+        harmonic=True,
+    )
+
+    ## with edge 6, 5 and 9 flipped
+    Gsc.flip_edge_orientation(4)
+    Gsc.flip_edge_orientation(9)
+
+    scan_frustration_parameters(
+        Gsc,
+        folder="./results/",
+        filename=f"Fig_2_example_1_5.pkl",
+        alpha1=[0.0],
         alpha2=np.linspace(0, np.pi / 2.0, n_alpha2),
         repeats=repeats,
         n_workers=n_workers,

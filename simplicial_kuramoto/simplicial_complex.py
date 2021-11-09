@@ -54,8 +54,6 @@ class SimplicialComplex:
         self._lifted_N0sn = None
         self._lifted_N1 = None
         self._lifted_N1sn = None
-        self._lifted_L0 = None
-        self._lifted_L1 = None
 
         self.set_lexicographic()
         self.no_faces = no_faces
@@ -108,8 +106,6 @@ class SimplicialComplex:
         self._lifted_N0sn = None
         self._lifted_N1 = None
         self._lifted_N1sn = None
-        self._lifted_L0 = None
-        self._lifted_L1 = None
 
         self.set_faces(self.faces)
 
