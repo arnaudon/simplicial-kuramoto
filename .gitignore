@@ -1,6 +1,8 @@
-
+*.egg-info
+.tox/
 *.pyc
-
-\.ipynb_checkpoints/
-
+.ipynb_checkpoints/
 images/
+.DS_Store
+._.DS_Store
+*.pdf

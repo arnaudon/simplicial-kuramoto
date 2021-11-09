@@ -1,4 +1,3 @@
-from .simplicial_complex import SimplicialComplex
-from .integrators import integrate_edge_kuramoto, integrate_node_kuramoto, integrate_edge_kuramoto_frustrated
-
-# from .simplicial_kuramoto import integrate_edge_kuramoto, integrate_node_kuramoto
+"""Simplicial Kuramoto simulator with frustration."""
+from simplicial_kuramoto.integrators import integrate_edge_kuramoto, integrate_node_kuramoto
+from simplicial_kuramoto.simplicial_complex import SimplicialComplex
