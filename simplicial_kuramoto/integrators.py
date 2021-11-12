@@ -16,6 +16,9 @@ def node_simplicial_kuramoto(
         pbar.update(n)
         state[0] = last_t + dt * n
 
+    if not isinstance(alpha_1, float):
+        alpha_1 = np.append(alpha_1, alpha_1)
+
     return -alpha_0 - sigma * simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
@@ -80,6 +83,83 @@ def integrate_edge_kuramoto(
             alpha_1=alpha_1,
             alpha_2=alpha_2,
             sigma=sigma,
+            pbar=pbar,
+            state=[0, t_max / n_t],
+        )
+        return solve_ivp(
+            rhs,
+            [0, t_max],
+            initial_phase,
+            t_eval=np.linspace(0, t_max, n_t),
+            method="BDF",
+            rtol=1.0e-8,
+            atol=1.0e-8,
+        )
+
+
+def tower_kuramoto(
+    time,
+    phase,
+    simplicial_complex=None,
+    pbar=None,
+    state=None,
+    alpha_0=None,
+    alpha_1=None,
+    alpha_2=None,
+):
+    if pbar is not None:
+        last_t, dt = state
+        n = int((time - last_t) / dt)
+        pbar.update(n)
+        state[0] = last_t + dt * n
+
+    phase_node = phase[: simplicial_complex.n_nodes]
+    phase_edge = phase[simplicial_complex.n_nodes :]
+
+    sol_node = node_simplicial_kuramoto(
+        time,
+        phase_node,
+        simplicial_complex=simplicial_complex,
+        alpha_0=alpha_0,
+        alpha_1=phase_edge,
+        sigma=1.0,
+        pbar=None,
+        state=None,
+    )
+    sol_edge = edge_simplicial_kuramoto(
+        time,
+        phase_edge,
+        simplicial_complex=simplicial_complex,
+        alpha_1=alpha_1,
+        alpha_2=alpha_2,
+        sigma=1.0,
+        pbar=None,
+        state=None,
+    )
+    return np.append(sol_node, sol_edge)
+
+
+def integrate_tower_kuramoto(
+    simplicial_complex,
+    initial_phase,
+    t_max,
+    n_t,
+    alpha_0=0,
+    alpha_1=0,
+    alpha_2=0,
+    sigma=1.0,
+    disable_tqdm=False,
+):
+    """Integrate the edge Kuramoto model."""
+    with tqdm(total=n_t, disable=disable_tqdm) as pbar:
+
+        rhs = partial(
+            tower_kuramoto,
+            simplicial_complex=simplicial_complex,
+            alpha_0=alpha_0,
+            alpha_1=alpha_1,
+            alpha_2=alpha_2,
+            # sigma=sigma,
             pbar=pbar,
             state=[0, t_max / n_t],
         )
