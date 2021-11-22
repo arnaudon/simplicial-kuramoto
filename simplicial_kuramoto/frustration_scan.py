@@ -133,6 +133,7 @@ def proj_subspace(vec, subspace):
 
 
 def compute_node_order_parameter(result, Gsc):
+    """Compute the node Kuramoto order parameter."""
     w1_inv = 1.0 / np.diag(Gsc.W1.toarray())
     return w1_inv.dot(np.cos(Gsc.N0.dot(result))) / w1_inv.sum()
 
