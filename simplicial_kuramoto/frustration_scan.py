@@ -132,6 +132,11 @@ def proj_subspace(vec, subspace):
     return np.linalg.norm(proj, axis=1)
 
 
+def compute_node_order_parameter(result, Gsc):
+    w1_inv = 1.0 / np.diag(Gsc.W1.toarray())
+    return w1_inv.dot(np.cos(Gsc.N0.dot(result))) / w1_inv.sum()
+
+
 def compute_order_parameter(result, Gsc, subset=None):
     """Evaluate the order parameter, or the partial one for subset edges.
     Args:

@@ -106,6 +106,8 @@ def tower_kuramoto(
     alpha_0=None,
     alpha_1=None,
     alpha_2=None,
+    sigma_0=1.0,
+    sigma_1=1.0,
 ):
     if pbar is not None:
         last_t, dt = state
@@ -122,7 +124,7 @@ def tower_kuramoto(
         simplicial_complex=simplicial_complex,
         alpha_0=alpha_0,
         alpha_1=phase_edge,
-        sigma=1.0,
+        sigma=sigma_0,
         pbar=None,
         state=None,
     )
@@ -132,7 +134,7 @@ def tower_kuramoto(
         simplicial_complex=simplicial_complex,
         alpha_1=alpha_1,
         alpha_2=alpha_2,
-        sigma=1.0,
+        sigma=sigma_1,
         pbar=None,
         state=None,
     )
@@ -147,7 +149,8 @@ def integrate_tower_kuramoto(
     alpha_0=0,
     alpha_1=0,
     alpha_2=0,
-    sigma=1.0,
+    sigma_0=1.0,
+    sigma_1=1.0,
     disable_tqdm=False,
 ):
     """Integrate the edge Kuramoto model."""
@@ -159,7 +162,8 @@ def integrate_tower_kuramoto(
             alpha_0=alpha_0,
             alpha_1=alpha_1,
             alpha_2=alpha_2,
-            # sigma=sigma,
+            sigma_0=sigma_0,
+            sigma_1=sigma_1,
             pbar=pbar,
             state=[0, t_max / n_t],
         )
