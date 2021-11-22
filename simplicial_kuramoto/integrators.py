@@ -16,6 +16,9 @@ def node_simplicial_kuramoto(
         pbar.update(n)
         state[0] = last_t + dt * n
 
+    if not isinstance(alpha_1, float):
+        alpha_1 = np.append(alpha_1, alpha_1)
+
     return -alpha_0 - sigma * simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
