@@ -48,7 +48,11 @@ class SimplicialComplex:
         self._L0 = None
         self._L1 = None
 
+        self._V1 = None
         self._V2 = None
+
+        self._lifted_N0 = None
+        self._lifted_N0sn = None
         self._lifted_N1 = None
         self._lifted_N1sn = None
 
@@ -209,6 +213,16 @@ class SimplicialComplex:
         return self._L1
 
     @property
+    def V1(self):
+        """Lift operator on faces."""
+        if self._V1 is None:
+            self._V1 = sc.sparse.csr_matrix(
+                np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
+            )
+        return self._V1
+
+
+    @property
     def V2(self):
         """Lift operator on faces."""
         if self._V2 is None:
@@ -216,6 +230,20 @@ class SimplicialComplex:
                 np.concatenate((np.eye(self.n_faces), -np.eye(self.n_faces)), axis=0)
             )
         return self._V2
+
+    @property
+    def lifted_N0(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0 is None:
+            self._lifted_N0 = self.V1.dot(self.N0)
+        return self._lifted_N0
+
+    @property
+    def lifted_N0sn(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0sn is None:
+            self._lifted_N0sn = neg(self.N0s.dot(self.V1.T))
+        return self._lifted_N0sn
 
     @property
     def lifted_N1(self):
