@@ -2,7 +2,10 @@
 
 This repository contains the code written to produce the figures of
 ```
-paper cite
+Connecting Hodge and Sakaguchi-Kuramoto: a mathematical framework for coupled
+oscillators on simplicial complexes
+by: Alexis Arnaudon, Robert L. Peach, Giovanni Petri and Paul Expert
+at: https://arxiv.org/pdf/2111.11073.pdf
 ```
 
 It numerically solves the Kuramoto model on simplicial complexes of order 1 (a graph) and 2 (a graph with faces), with node/edge/face weights and frustration.
