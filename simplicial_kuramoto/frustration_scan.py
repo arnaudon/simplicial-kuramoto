@@ -229,9 +229,7 @@ def plot_lyapunov(path, filename="lyap.pdf", nolds_kwargs=None):
     for i in tqdm(range(Gsc.n_edges)):
         lyapunov = []
         for result in results[1:-1]:
-            lyap = []
-            for res in result:
-                lyap.append(nolds.lyap_r(res.y[i], **nolds_kwargs))
+            lyap = [nolds.lyap_r(res.y[i], **nolds_kwargs) for res in result]
             lyapunov.append(np.mean(lyap))
         lyaps.append(lyapunov)
     lyaps = np.array(lyaps)

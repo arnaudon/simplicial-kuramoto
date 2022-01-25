@@ -59,9 +59,7 @@ def coalition_entropy(order_parameters, gamma=0.8):
         coalition = unique_coalitions[i, :]
         coalition_prob[i] = (coalitions == coalition).all(-1).sum() / Nt
 
-    ce = -(coalition_prob * np.log2(coalition_prob)).sum() / M
-
-    return ce
+    return -(coalition_prob * np.log2(coalition_prob)).sum() / M
 
 
 def pairwise_synchronisation(theta, community_assignment):
@@ -71,16 +69,13 @@ def pairwise_synchronisation(theta, community_assignment):
     Nc = len(np.unique(community_assignment))
     op = np.zeros((Nc, Nt))
 
-    cnt = 0
-    for c1, c2 in combinations(comms, 2):
+    for cnt, (c1, c2) in enumerate(combinations(comms, 2)):
         ind1 = np.argwhere(community_assignment == c1)
         ind2 = np.argwhere(community_assignment == c2)
 
         op[cnt, :] = np.absolute(
             0.5 * (np.exp(1j * theta[ind1, :]).sum(0) + np.exp(1j * theta[ind2, :]).sum(0))
         ) / (len(ind1) + len(ind2))
-        cnt = cnt + 1
-
     return op
 
 

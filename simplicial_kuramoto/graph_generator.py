@@ -105,7 +105,7 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
     if centres is not None:
         for i in range(len(centres)):
             points = [p for p in points if np.linalg.norm(p - centres[i]) > radii[i]]
-        for i, (centre, radius) in enumerate(zip(centres, radii)):
+        for centre, radius in zip(centres, radii):
             points += list(
                 np.vstack(
                     [
@@ -130,12 +130,15 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
 
                 # add the edges in the boundary of holes
                 for i in range(len(centres)):
-                    if edge[0] in idx_inside[i] and edge[1] in idx_inside[i]:
-                        if (
+                    if (
+                        edge[0] in idx_inside[i]
+                        and edge[1] in idx_inside[i]
+                        and (
                             np.linalg.norm(points[edge[0]] - points[edge[1]])
                             < 2.0 * np.pi * radii[i] / n_nodes_hole
-                        ):
-                            edge_list.append(edge)
+                        )
+                    ):
+                        edge_list.append(edge)
             else:
                 edge_list.append(edge)
     graph = nx.Graph()

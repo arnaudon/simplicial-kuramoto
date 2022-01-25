@@ -1,4 +1,5 @@
 """Scan frustration parameter."""
+
 import numpy as np
 import networkx as nx
 
@@ -31,8 +32,7 @@ if __name__ == "__main__":
     G.add_edge(1, 6, weight=1, edge_com=0)
 
     # pos = nx.spring_layout(G,)
-    pos_ = {}
-    pos_[0] = np.array([0, 0])
+    pos_ = {0: np.array([0, 0])}
     pos_[1] = np.array([1, 0])
     pos_[2] = np.array([2, 0])
     pos_[3] = np.array([0, 1])
