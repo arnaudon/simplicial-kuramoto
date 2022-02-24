@@ -110,22 +110,24 @@ class SimplicialComplex:
     def W0(self):
         """Create node weight matrix."""
         if self._W0 is None:
-            if "weight" in self.graph.nodes[list(self.graph)[0]]:
-                node_weights = [self.graph.nodes[u]["weight"] for u in self.graph]
-            else:
-                node_weights = np.ones(self.n_nodes)
-            self._W0 = sc.sparse.spdiags(node_weights, 0, self.n_nodes, self.n_nodes)
+            self._W0 = sc.sparse.spdiags(
+                [self.graph.nodes[u].get("weight", 1.0) for u in self.graph],
+                0,
+                self.n_nodes,
+                self.n_nodes,
+            )
         return self._W0
 
     @property
     def W1(self):
         """Create edge weight matrix."""
         if self._W1 is None:
-            if "weight" in self.graph.nodes[list(self.graph)[0]]:
-                edge_weights = [self.graph[u][v]["weight"] for u, v in self.graph.edges]
-            else:
-                edge_weights = np.ones(self.n_edges)
-            self._W1 = sc.sparse.spdiags(edge_weights, 0, self.n_edges, self.n_edges)
+            self._W1 = sc.sparse.spdiags(
+                [self.graph[u][v].get("weight", 1.0) for u, v in self.graph.edges],
+                0,
+                self.n_edges,
+                self.n_edges,
+            )
         return self._W1
 
     @property
@@ -220,7 +222,6 @@ class SimplicialComplex:
                 np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
             )
         return self._V1
-
 
     @property
     def V2(self):
