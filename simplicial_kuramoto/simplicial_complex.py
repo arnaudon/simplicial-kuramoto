@@ -133,9 +133,8 @@ class SimplicialComplex:
     @property
     def W2(self):
         """Create face weight matrix."""
-        if self._W2 is None:
-            if self.faces is not None:
-                self._W2 = sc.sparse.spdiags(self.face_weights, 0, self.n_faces, self.n_faces)
+        if self._W2 is None and self.faces is not None:
+            self._W2 = sc.sparse.spdiags(self.face_weights, 0, self.n_faces, self.n_faces)
         return self._W2
 
     @property
@@ -164,21 +163,20 @@ class SimplicialComplex:
     @property
     def B1(self):
         """Create edge incidence matrix."""
-        if self._B1 is None:
-            if self.faces is not None:
-                self._B1 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
-                for face_index, face in enumerate(self.faces):
-                    for i in range(3):
-                        edge = tuple(np.roll(face, i)[:2])
-                        edge_rev = tuple(np.roll(face, i)[1::-1])
-                        if edge in self.edgelist:
-                            edge_index = self.edgelist.index(edge)
-                            self._B1[face_index, edge_index] = 1.0
-                        elif edge_rev in self.edgelist:
-                            edge_index = self.edgelist.index(edge_rev)
-                            self._B1[face_index, edge_index] = -1.0
-                        else:
-                            raise Exception("The face is not a triangle in the graph")
+        if self._B1 is None and self.faces is not None:
+            self._B1 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
+            for face_index, face in enumerate(self.faces):
+                for i in range(3):
+                    edge = tuple(np.roll(face, i)[:2])
+                    edge_rev = tuple(np.roll(face, i)[1::-1])
+                    if edge in self.edgelist:
+                        edge_index = self.edgelist.index(edge)
+                        self._B1[face_index, edge_index] = 1.0
+                    elif edge_rev in self.edgelist:
+                        edge_index = self.edgelist.index(edge_rev)
+                        self._B1[face_index, edge_index] = -1.0
+                    else:
+                        raise Exception("The face is not a triangle in the graph")
         return self._B1
 
     @property
