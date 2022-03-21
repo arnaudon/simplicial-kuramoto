@@ -412,7 +412,7 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
         vec = np.diff(vec, axis=axis) > 0
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
-    plt.figure()  # figsize=(5, 4))
+    plt.figure(figsize=(5, 4))
     plt.imshow(harm_order, origin="lower", extent=extent, aspect="auto")
     if with_proj:
         plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
