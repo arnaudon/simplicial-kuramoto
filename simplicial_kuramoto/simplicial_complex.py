@@ -110,30 +110,31 @@ class SimplicialComplex:
     def W0(self):
         """Create node weight matrix."""
         if self._W0 is None:
-            if "weight" in self.graph.nodes[list(self.graph)[0]]:
-                node_weights = [self.graph.nodes[u]["weight"] for u in self.graph]
-            else:
-                node_weights = np.ones(self.n_nodes)
-            self._W0 = sc.sparse.spdiags(node_weights, 0, self.n_nodes, self.n_nodes)
+            self._W0 = sc.sparse.spdiags(
+                [self.graph.nodes[u].get("weight", 1.0) for u in self.graph],
+                0,
+                self.n_nodes,
+                self.n_nodes,
+            )
         return self._W0
 
     @property
     def W1(self):
         """Create edge weight matrix."""
         if self._W1 is None:
-            if "weight" in self.graph.nodes[list(self.graph)[0]]:
-                edge_weights = [self.graph[u][v]["weight"] for u, v in self.graph.edges]
-            else:
-                edge_weights = np.ones(self.n_edges)
-            self._W1 = sc.sparse.spdiags(edge_weights, 0, self.n_edges, self.n_edges)
+            self._W1 = sc.sparse.spdiags(
+                [self.graph[u][v].get("weight", 1.0) for u, v in self.graph.edges],
+                0,
+                self.n_edges,
+                self.n_edges,
+            )
         return self._W1
 
     @property
     def W2(self):
         """Create face weight matrix."""
-        if self._W2 is None:
-            if self.faces is not None:
-                self._W2 = sc.sparse.spdiags(self.face_weights, 0, self.n_faces, self.n_faces)
+        if self._W2 is None and self.faces is not None:
+            self._W2 = sc.sparse.spdiags(self.face_weights, 0, self.n_faces, self.n_faces)
         return self._W2
 
     @property
@@ -162,21 +163,20 @@ class SimplicialComplex:
     @property
     def B1(self):
         """Create edge incidence matrix."""
-        if self._B1 is None:
-            if self.faces is not None:
-                self._B1 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
-                for face_index, face in enumerate(self.faces):
-                    for i in range(3):
-                        edge = tuple(np.roll(face, i)[:2])
-                        edge_rev = tuple(np.roll(face, i)[1::-1])
-                        if edge in self.edgelist:
-                            edge_index = self.edgelist.index(edge)
-                            self._B1[face_index, edge_index] = 1.0
-                        elif edge_rev in self.edgelist:
-                            edge_index = self.edgelist.index(edge_rev)
-                            self._B1[face_index, edge_index] = -1.0
-                        else:
-                            raise Exception("The face is not a triangle in the graph")
+        if self._B1 is None and self.faces is not None:
+            self._B1 = sc.sparse.lil_matrix((self.n_faces, self.n_edges))
+            for face_index, face in enumerate(self.faces):
+                for i in range(3):
+                    edge = tuple(np.roll(face, i)[:2])
+                    edge_rev = tuple(np.roll(face, i)[1::-1])
+                    if edge in self.edgelist:
+                        edge_index = self.edgelist.index(edge)
+                        self._B1[face_index, edge_index] = 1.0
+                    elif edge_rev in self.edgelist:
+                        edge_index = self.edgelist.index(edge_rev)
+                        self._B1[face_index, edge_index] = -1.0
+                    else:
+                        raise Exception("The face is not a triangle in the graph")
         return self._B1
 
     @property
@@ -220,7 +220,6 @@ class SimplicialComplex:
                 np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
             )
         return self._V1
-
 
     @property
     def V2(self):
