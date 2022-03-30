@@ -7,17 +7,22 @@ from simplicial_kuramoto.plotting import draw_simplicial_complex
 
 if __name__ == "__main__":
     points = [[-1, -1], [-1, 1], [1, 1], [1, -1]]
-    w = 0.1
-    ws = np.linspace(0.1, 1.5, 50)
+    ws = np.linspace(0.1, 1.0, 4)
+
     for i, w in enumerate(ws):
         graph, points = delaunay_with_holes(points=points)
         for _i, (u, v) in enumerate(graph.edges):
             if _i == 0:
-                graph[u][v]["weight"] = w
+                graph[u][v]["weight"] = 1.0
             else:
                 graph[u][v]["weight"] = 1.0
 
-        Gsc = SimplicialComplex(graph=graph, face_weights=[w, w])
+        Gsc = SimplicialComplex(graph=graph)
+        if w == 0:
+            Gsc = SimplicialComplex(graph=graph, no_faces=True)
+            print(Gsc.faces)
+        else:
+            Gsc = SimplicialComplex(graph=graph, faces=[Gsc.faces[0]], face_weights=[w])
         draw_simplicial_complex(Gsc, "complex.pdf")
 
         alpha1 = np.linspace(0, 2.5, 80)
@@ -29,7 +34,7 @@ if __name__ == "__main__":
 
         scan_frustration_parameters(
             Gsc,
-            filename=f"square_{i}.pkl",
+            filename=f"square_half_{i}.pkl",
             alpha1=alpha1,
             alpha2=alpha2,
             repeats=n_repeats,

@@ -247,7 +247,6 @@ def plot_lyapunov(path, filename="lyap.pdf", nolds_kwargs=None):
     )
     plt.gca().set_xlim(0, np.pi / 2)
     plt.gca().set_ylim(-0.002, 0.027)
-    plt.axhline(0, c="k", ls="--", lw=0.5)
     plt.xlabel(r"$\alpha_2$")
     plt.ylabel(r"mean($\lambda$)")
     plt.savefig(filename, bbox_inches="tight")
@@ -275,9 +274,8 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     return grad, curl, harm, mean_harm_order, std_harm_order
 
 
-def plot_order_1d(
-    path, filename, frac=0.5, eps=1e-5, with_std=False
-):  # pylint: disable=too-many-statements
+# pylint: disable=too-many-statements
+def plot_order_1d(path, filename, frac=0.5, eps=1e-5, with_std=False, figsize=(3, 3)):
     """Plot order and projection with fixed alpha1."""
 
     with open(path, "rb") as pick:
@@ -363,7 +361,7 @@ def plot_order_1d(
     plt.savefig(filename, bbox_inches="tight")
 
 
-def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False):
+def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False, figsize=(3, 2.5)):
     """Plot order scan."""
 
     with open(path, "rb") as pick:
@@ -412,26 +410,20 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
         vec = np.diff(vec, axis=axis) > 0
         return a2[vec.T] - step1 / 2.0, a1[vec.T]
 
-    plt.figure(figsize=(5, 4))
-    plt.imshow(harm_order, origin="lower", extent=extent, aspect="auto")
+    plt.figure(figsize=figsize)
+    plt.imshow(harm_order, origin="lower", extent=extent, aspect="auto", vmin=0.4, vmax=1)
     if with_proj:
         plt.plot(*_get_scan_boundary(grad), c="k", lw=1)
         plt.plot(*_get_scan_boundary(curl), c="r", lw=1, ls="--")
     plt.axis(extent)
-    plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
     plt.xlabel(r"$\alpha_2$")
     plt.colorbar(label="Order", fraction=0.02)
 
-    ng = np.shape(grad_subspace)[1]
-    nc = np.shape(curl_subspace)[1]
-    nh = np.shape(harm_subspace)[1]
-    plt.suptitle(f"dim(grad) = {ng}, dim(curl) = {nc}, dim(harm) = {nh}", fontsize=9)
-
     plt.savefig(filename, bbox_inches="tight")
 
 
-def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
+def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4, figsize=(3, 5)):
     """Plot grad, curl and harm subspaces projection measures."""
     with open(path, "rb") as pick:
         Gsc, results, alpha1, alpha2 = pickle.load(pick)
@@ -461,7 +453,7 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
 
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
-    fig = plt.figure(figsize=(5, 8))
+    fig = plt.figure(figsize=figsize)
 
     gs = fig.add_gridspec(3, hspace=0)
     axs = gs.subplots(sharex=True, sharey=True)
@@ -471,32 +463,23 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
 
     plt.sca(axs[0])
 
-    plt.imshow(grad, origin="lower", extent=extent, vmin=0, aspect="auto")
+    plt.imshow(grad, origin="lower", extent=extent, vmin=0, aspect="auto", vmax=4)
     plt.axis(extent)
-    plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
     plt.colorbar(label="Gradient slope", fraction=0.02)
 
     plt.sca(axs[1])
-    plt.imshow(curl, origin="lower", extent=extent, vmin=0, aspect="auto")
+    plt.imshow(curl, origin="lower", extent=extent, vmin=0, aspect="auto", vmax=1.2)
     plt.ylabel(r"$\alpha_1$")
-    plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.axis(extent)
     plt.colorbar(label="Curl slope", fraction=0.02)
 
     plt.sca(axs[2])
-    plt.imshow(harm, origin="lower", extent=extent, vmin=0, aspect="auto")
+    plt.imshow(harm, origin="lower", extent=extent, vmin=0, aspect="auto", vmax=2.0)
     plt.axis(extent)
-    plt.axhline(1, ls="--", c="k", lw=0.5)
     plt.ylabel(r"$\alpha_1$")
     plt.xlabel(r"$\alpha_2$")
     plt.colorbar(label="Harmonic slope", fraction=0.02)
 
-    ng = np.shape(grad_subspace)[1]
-    nc = np.shape(curl_subspace)[1]
-    nh = np.shape(harm_subspace)[1]
-    plt.suptitle(f"dim(grad) = {ng}, dim(curl) = {nc}, dim(harm) = {nh}", fontsize=9)
-
     fig.tight_layout()
-
     plt.savefig(filename, bbox_inches="tight")
