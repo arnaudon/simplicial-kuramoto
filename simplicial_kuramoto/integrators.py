@@ -46,7 +46,7 @@ def integrate_node_kuramoto(
 
 
 def edge_simplicial_kuramoto(
-    time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0, sigma=1.0, pbar=None, state=None
+    time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0, alpha_3=0, sigma=1.0, pbar=None, state=None
 ):
     """Edge simplicial kuramoto"""
     if pbar is not None:
@@ -55,7 +55,10 @@ def edge_simplicial_kuramoto(
         pbar.update(n)
         state[0] = last_t + dt * n
 
-    rhs = alpha_1 + sigma * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
+    #rhs = alpha_1 + sigma * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
+    rhs = alpha_1 + sigma * simplicial_complex.lifted_N0sn.dot(np.sin(simplicial_complex.lifted_N0s.dot(phase) + alpha_3))
+    #rhs = alpha_1 + sigma * simplicial_complex.lifted_N0sn.dot(np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_3))
+
     if simplicial_complex.W2 is not None:
         rhs += sigma * simplicial_complex.lifted_N1sn.dot(
             np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
@@ -70,6 +73,7 @@ def integrate_edge_kuramoto(
     n_t,
     alpha_1=0,
     alpha_2=0,
+    alpha_3=0,
     sigma=1.0,
     disable_tqdm=False,
 ):
@@ -82,6 +86,7 @@ def integrate_edge_kuramoto(
             simplicial_complex=simplicial_complex,
             alpha_1=alpha_1,
             alpha_2=alpha_2,
+            alpha_3=alpha_3,
             sigma=sigma,
             pbar=pbar,
             state=[0, t_max / n_t],

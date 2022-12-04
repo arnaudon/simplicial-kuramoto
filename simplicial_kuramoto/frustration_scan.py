@@ -43,6 +43,7 @@ def _integrate_several_kuramoto(
                 n_t,
                 alpha_1=parameters[0] * harm_subspace[:, 0] if harmonic else parameters[0],
                 alpha_2=parameters[1],
+                alpha_3=parameters[2],
                 disable_tqdm=True,
             )
         )
@@ -54,6 +55,7 @@ def scan_frustration_parameters(
     simplicial_complex,
     alpha1=np.linspace(0, np.pi, 10),
     alpha2=np.linspace(0, 2.0, 10),
+    alpha3=0,
     repeats=1,
     n_workers=4,
     t_max=200,
@@ -85,7 +87,7 @@ def scan_frustration_parameters(
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    parameter_combinations = list(itertools.product(alpha1, alpha2))
+    parameter_combinations = list(itertools.product(alpha1, alpha2, alpha3))
 
     with Pool(n_workers) as pool:
         results = list(

@@ -52,8 +52,10 @@ class SimplicialComplex:
         self._V2 = None
 
         self._lifted_N0 = None
+        self._lifted_N0s = None
         self._lifted_N0sn = None
         self._lifted_N1 = None
+        self._lifted_N1s = None
         self._lifted_N1sn = None
 
         self.set_lexicographic()
@@ -181,7 +183,7 @@ class SimplicialComplex:
 
     @property
     def N1s(self):
-        """Create conjugate weighted node incidence matrix."""
+        """Create conjugate weighted edge incidence matrix."""
         if self._N1s is None:
             W2_inv = self.W2.copy()
             W2_inv.data = 1.0 / W2_inv.data
@@ -244,7 +246,14 @@ class SimplicialComplex:
         if self._lifted_N0sn is None:
             self._lifted_N0sn = neg(self.N0s.dot(self.V1.T))
         return self._lifted_N0sn
-
+    
+    @property
+    def lifted_N0s(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0s is None:
+            self._lifted_N0s = self.V1.dot(self.N0s) #self.N0s.dot(self.V1.T)
+        return self._lifted_N0s
+    
     @property
     def lifted_N1(self):
         """Create lifted version of incidence matrices."""
