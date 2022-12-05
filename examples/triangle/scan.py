@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     alpha1 = np.linspace(0, 2.5, 10)
     alpha2 = np.linspace(0, np.pi / 2.0, 20)
-    alpha3 = np.array([0.])
+    alpha3 = np.array([1])
 
     n_repeats = 1
     t_max = 500

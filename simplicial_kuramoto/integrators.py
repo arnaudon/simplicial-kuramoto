@@ -57,7 +57,7 @@ def edge_simplicial_kuramoto(
 
     #rhs = alpha_1 + sigma * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
     rhs = alpha_1 + sigma * simplicial_complex.lifted_N0sn.dot(np.sin(simplicial_complex.lifted_N0s.dot(phase) + alpha_3))
-    #rhs = alpha_1 + sigma * simplicial_complex.lifted_N0sn.dot(np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_3))
+
 
     if simplicial_complex.W2 is not None:
         rhs += sigma * simplicial_complex.lifted_N1sn.dot(

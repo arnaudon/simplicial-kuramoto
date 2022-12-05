@@ -47,7 +47,8 @@ class SimplicialComplex:
         self._W2 = None
         self._L0 = None
         self._L1 = None
-
+        
+        self._V0 = None
         self._V1 = None
         self._V2 = None
 
@@ -214,9 +215,19 @@ class SimplicialComplex:
                 self._L1 += self.N1s.dot(self.N1)
         return self._L1
 
+
+    @property
+    def V0(self):
+        """Lift operator on nodes."""
+        if self._V0 is None:
+            self._V0 = sc.sparse.csr_matrix(
+                np.concatenate((np.eye(self.n_nodes), -np.eye(self.n_nodes)), axis=0)
+            )
+        return self._V0
+
     @property
     def V1(self):
-        """Lift operator on faces."""
+        """Lift operator on edges."""
         if self._V1 is None:
             self._V1 = sc.sparse.csr_matrix(
                 np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
@@ -244,14 +255,14 @@ class SimplicialComplex:
     def lifted_N0sn(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_N0sn is None:
-            self._lifted_N0sn = neg(self.N0s.dot(self.V1.T))
+            self._lifted_N0sn = neg(self.N0.dot(self.V0.T))
         return self._lifted_N0sn
     
     @property
     def lifted_N0s(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_N0s is None:
-            self._lifted_N0s = self.V1.dot(self.N0s) #self.N0s.dot(self.V1.T)
+            self._lifted_N0s = self.V0.dot(self.N0s) 
         return self._lifted_N0s
     
     @property
