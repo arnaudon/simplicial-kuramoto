@@ -14,9 +14,9 @@ if __name__ == "__main__":
     Gsc = SimplicialComplex(graph=G)
     Gsc.flip_edge_orientation([0, 1])
 
-    alpha1 = np.linspace(0, 2.5, 10)
-    alpha2 = np.linspace(0, np.pi / 2.0, 20)
-    alpha3 = np.array([1])
+    natural_frequency = np.linspace(0, 2.5, 10)
+    alpha_lower = np.array([0])
+    alpha_upper = np.linspace(0, np.pi / 2.0, 20)
 
     n_repeats = 1
     t_max = 500
@@ -26,9 +26,9 @@ if __name__ == "__main__":
     scan_frustration_parameters(
         Gsc,
         filename="triangle.pkl",
-        alpha1=alpha1,
-        alpha2=alpha2,
-        alpha3=alpha3,
+        natural_frequency=natural_frequency,
+        alpha_lower=alpha_lower,
+        alpha_upper=alpha_upper,
         repeats=n_repeats,
         n_workers=n_workers,
         t_max=t_max,

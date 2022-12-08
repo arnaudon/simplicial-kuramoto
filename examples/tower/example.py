@@ -12,10 +12,16 @@ from simplicial_kuramoto.frustration_scan import (
 if __name__ == "__main__":
     np.random.seed(42)
     G = nx.Graph()
+    # G.add_edge(0, 1, weight=1, edge_com=0)
+    # G.add_edge(1, 2, weight=1, edge_com=0)
+    # G.add_edge(2, 3, weight=1, edge_com=0)
+    # G.add_edge(3, 0, weight=1, edge_com=0)
+    # G.add_edge(2, 0, weight=1, edge_com=0)
+    
     G.add_edge(0, 1, weight=1, edge_com=0)
     G.add_edge(1, 2, weight=1, edge_com=0)
     G.add_edge(2, 0, weight=1, edge_com=0)
-
+    
     Gsc = SimplicialComplex(graph=G)
     Gsc.flip_edge_orientation([0, 1])
 
@@ -28,11 +34,11 @@ if __name__ == "__main__":
         initial_phase,
         t_max,
         n_t,
-        alpha_0=0.5,
-        alpha_1=0.5,
-        alpha_2=np.pi / 2 - 0.05,
-        sigma_0=1.0,
-        sigma_1=1.0,
+        alpha_upper_node=0.5,
+        alpha_lower_edge=0.5,
+        alpha_upper_edge=np.pi / 2 - 0.05,
+        sigma_node_edge=1.0,
+        sigma_edge_face=1.0,
     )
     n_min = 1000
     res.t = res.t[n_min:]

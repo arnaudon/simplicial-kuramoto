@@ -41,9 +41,9 @@ def _integrate_several_kuramoto(
                 initial_phase,
                 t_max,
                 n_t,
-                alpha_1=parameters[0] * harm_subspace[:, 0] if harmonic else parameters[0],
-                alpha_2=parameters[1],
-                alpha_3=parameters[2],
+                natural_frequency=parameters[0] * harm_subspace[:, 0] if harmonic else float(parameters[0]),
+                alpha_lower=float(parameters[1]),
+                alpha_upper=float(parameters[2]),
                 disable_tqdm=True,
             )
         )
@@ -53,9 +53,9 @@ def _integrate_several_kuramoto(
 
 def scan_frustration_parameters(
     simplicial_complex,
-    alpha1=np.linspace(0, np.pi, 10),
-    alpha2=np.linspace(0, 2.0, 10),
-    alpha3=0,
+    natural_frequency=np.linspace(0, np.pi, 10),
+    alpha_lower=0,
+    alpha_upper=np.linspace(0, 2.0, 10),
     repeats=1,
     n_workers=4,
     t_max=200,
@@ -69,8 +69,8 @@ def scan_frustration_parameters(
 
     Args:
         simplicial_complex (SimplicialComplex): simplicial complex to use
-        alpha1 (array): alpha1 values to scan
-        alpha2 (array): alpha2 values to scan
+        natural_frequency (array): natural_frequency values to scan
+        alpha_upper (array): alpha_upper values to scan
         repeats (int): number of repeat of same point with random initial conditions
         n_workers (int): number of workers for multiprocessing
         t_max (float): integration time
@@ -78,7 +78,7 @@ def scan_frustration_parameters(
         save (bool): save results in a picle
         folder (str): folder to save results
         filename (str): name of pickle file
-        harmonic (bool): to use a harmonic alpha1 vector scaled by given alpha1
+        harmonic (bool): to use a harmonic natural_frequency vector scaled by given natural_frequency
 
     Returns:
         results of the scan
@@ -87,7 +87,7 @@ def scan_frustration_parameters(
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    parameter_combinations = list(itertools.product(alpha1, alpha2, alpha3))
+    parameter_combinations = list(itertools.product(natural_frequency, alpha_lower, alpha_upper))
 
     with Pool(n_workers) as pool:
         results = list(
@@ -109,7 +109,7 @@ def scan_frustration_parameters(
 
     if save:
         with open(folder + filename, "wb") as f:
-            pickle.dump([simplicial_complex, results, alpha1, alpha2], f)
+            pickle.dump([simplicial_complex, results, natural_frequency, alpha_lower, alpha_upper], f)
 
     return results
 
@@ -225,7 +225,7 @@ def plot_lyapunov(path, filename="lyap.pdf", nolds_kwargs=None):
         nolds_kwargs = {"trajectory_len": 10, "lag": 30, "min_tsep": 20, "fit": "poly"}
 
     with open(path, "rb") as pick:
-        Gsc, results, _, alpha2 = pickle.load(pick)
+        Gsc, results, _, alpha_upper = pickle.load(pick)
 
     lyaps = []
     for i in tqdm(range(Gsc.n_edges)):
@@ -239,9 +239,9 @@ def plot_lyapunov(path, filename="lyap.pdf", nolds_kwargs=None):
     lyaps = np.array(lyaps)
 
     plt.figure(figsize=(4, 2))
-    plt.plot(alpha2[1:-1], np.mean(lyaps, axis=0), "k-", lw=2)
+    plt.plot(alpha_upper[1:-1], np.mean(lyaps, axis=0), "k-", lw=2)
     plt.fill_between(
-        alpha2[1:-1],
+        alpha_upper[1:-1],
         np.percentile(lyaps, 25, axis=0),
         np.percentile(lyaps, 75, axis=0),
         color="k",
@@ -280,10 +280,10 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
 def plot_order_1d(
     path, filename, frac=0.5, eps=1e-5, with_std=False
 ):  # pylint: disable=too-many-statements
-    """Plot order and projection with fixed alpha1."""
+    """Plot order and projection with fixed natural_frequency."""
 
     with open(path, "rb") as pick:
-        Gsc, results, _, alpha2 = pickle.load(pick)
+        Gsc, results, _, alpha_upper = pickle.load(pick)
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
     grad = []
@@ -292,7 +292,7 @@ def plot_order_1d(
     mean_harm_order = []
     std_harm_order = []
     alphas = []
-    for i, a2 in tqdm(enumerate(alpha2), total=len(alpha2)):
+    for i, a2 in tqdm(enumerate(alpha_upper), total=len(alpha_upper)):
         for result in results[i]:
             (_grad, _curl, _harm, _mean_harm_order, _std_harm_order) = _get_projections_1d(
                 result, frac, eps, grad_subspace, curl_subspace, harm_subspace, Gsc
@@ -369,14 +369,14 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
     """Plot order scan."""
 
     with open(path, "rb") as pick:
-        Gsc, results, alpha1, alpha2 = pickle.load(pick)
+        Gsc, results, natural_frequency, alpha_upper, alpha_3 = pickle.load(pick)
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
-    grad = np.empty([len(alpha1), len(alpha2)])
-    curl = np.empty([len(alpha1), len(alpha2)])
-    harm = np.empty([len(alpha1), len(alpha2)])
-    harm_order = np.empty([len(alpha1), len(alpha2)])
-    pairs = list(itertools.product(range(len(alpha1)), range(len(alpha2))))
+    grad = np.empty([len(natural_frequency), len(alpha_upper)])
+    curl = np.empty([len(natural_frequency), len(alpha_upper)])
+    harm = np.empty([len(natural_frequency), len(alpha_upper)])
+    harm_order = np.empty([len(natural_frequency), len(alpha_upper)])
+    pairs = list(itertools.product(range(len(natural_frequency)), range(len(alpha_upper))))
 
     _eval = partial(
         _get_projections,
@@ -399,15 +399,15 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
 
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
-    step1 = alpha1[1] - alpha1[0]
-    step2 = alpha1[1] - alpha1[0]
-    extent = (alpha2[0] - step2, alpha2[-1] - step2, alpha1[0] - step1, alpha1[-1] - step1)
+    step1 = natural_frequency[1] - natural_frequency[0]
+    step2 = natural_frequency[1] - natural_frequency[0]
+    extent = (alpha_upper[0] - step2, alpha_upper[-1] - step2, natural_frequency[0] - step1, natural_frequency[-1] - step1)
 
     def _get_scan_boundary(vec, axis=0):
         if axis == 0:
-            a1, a2 = np.meshgrid(alpha1[:-1], alpha2)
+            a1, a2 = np.meshgrid(natural_frequency[:-1], alpha_upper)
         if axis == 1:
-            a1, a2 = np.meshgrid(alpha1, alpha2[:-1])
+            a1, a2 = np.meshgrid(natural_frequency, alpha_upper[:-1])
         vec = vec.copy()
         vec[~np.isnan(vec)] = 1
         vec[np.isnan(vec)] = 0
@@ -436,14 +436,14 @@ def plot_order(path, filename, frac=0.5, eps=1e-5, n_workers=4, with_proj=False)
 def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
     """Plot grad, curl and harm subspaces projection measures."""
     with open(path, "rb") as pick:
-        Gsc, results, alpha1, alpha2 = pickle.load(pick)
+        Gsc, results, natural_frequency, alpha_lower, alpha_upper = pickle.load(pick)
 
     grad_subspace, curl_subspace, harm_subspace = get_subspaces(Gsc)
 
-    grad = np.empty([len(alpha1), len(alpha2)])
-    curl = np.empty([len(alpha1), len(alpha2)])
-    harm = np.empty([len(alpha1), len(alpha2)])
-    pairs = list(itertools.product(range(len(alpha1)), range(len(alpha2))))
+    grad = np.empty([len(natural_frequency), len(alpha_upper)])
+    curl = np.empty([len(natural_frequency), len(alpha_upper)])
+    harm = np.empty([len(natural_frequency), len(alpha_upper)])
+    pairs = list(itertools.product(range(len(natural_frequency)), range(len(alpha_upper))))
 
     _eval = partial(
         _get_projections,
@@ -467,9 +467,9 @@ def plot_projections(path, filename, frac=0.8, eps=1e-5, n_workers=4):
 
     gs = fig.add_gridspec(3, hspace=0)
     axs = gs.subplots(sharex=True, sharey=True)
-    step1 = alpha1[1] - alpha1[0]
-    step2 = alpha1[1] - alpha1[0]
-    extent = (alpha2[0] - step2, alpha2[-1] - step2, alpha1[0] - step1, alpha1[-1] - step1)
+    step1 = natural_frequency[1] - natural_frequency[0]
+    step2 = natural_frequency[1] - natural_frequency[0]
+    extent = (alpha_upper[0] - step2, alpha_upper[-1] - step2, natural_frequency[0] - step1, natural_frequency[-1] - step1)
 
     plt.sca(axs[0])
 
