@@ -34,11 +34,13 @@ if __name__ == "__main__":
         initial_phase,
         t_max,
         n_t,
-        alpha_upper_node=0.5,
-        alpha_lower_edge=0.5,
-        alpha_upper_edge=np.pi / 2 - 0.05,
-        sigma_node_edge=1.0,
-        sigma_edge_face=1.0,
+        natural_frequency_node=1,
+        natural_frequency_edge=1,
+        alpha_upper_node=1,
+        alpha_lower_edge=1,
+        alpha_upper_edge=0,# np.pi / 2 - 0.05,
+        sigma_node_edge=1,
+        sigma_edge_face=1,
     )
     n_min = 1000
     res.t = res.t[n_min:]
