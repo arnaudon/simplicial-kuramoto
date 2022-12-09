@@ -184,7 +184,7 @@ def integrate_tower_kuramoto(
             alpha_lower_edge=alpha_lower_edge,
             alpha_upper_edge=alpha_upper_edge,
             sigma_node_edge=sigma_node_edge,
-            sigma_edge_face=sigma_node_edge,
+            sigma_edge_face=sigma_edge_face,
             pbar=pbar,
             state=[0, t_max / n_t],
         )
