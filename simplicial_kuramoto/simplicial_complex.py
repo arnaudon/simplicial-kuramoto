@@ -307,6 +307,8 @@ def _prepare(simplicial_complex):
         class Sc:
             """Container to make xgi.SimplicialComplex look like internal one."""
 
+            n_nodes = simplicial_complex.num_nodes
+
             W0 = _W0
             W1 = _W1
             W2 = _W2

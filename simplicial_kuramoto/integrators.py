@@ -8,6 +8,14 @@ from tqdm import tqdm
 from simplicial_kuramoto.simplicial_complex import use_with_xgi
 
 
+def _update_bar(pbar, state, time):
+    if pbar is not None:
+        last_t, dt = state
+        n = int((time - last_t) / dt)
+        pbar.update(n)
+        state[0] = last_t + dt * n
+
+
 @use_with_xgi
 def compute_node_order_parameter(Gsc, result):
     """Compute the node Kuramoto order parameter."""
@@ -57,11 +65,7 @@ def node_simplicial_kuramoto(
     time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0, sigma=1.0, pbar=None, state=None
 ):
     """Node simplicial kuramoto, or classical Kuramoto."""
-    if pbar is not None:
-        last_t, dt = state
-        n = int((time - last_t) / dt)
-        pbar.update(n)
-        state[0] = last_t + dt * n
+    _update_bar(pbar, state, time)
 
     if not isinstance(alpha_1, float):
         alpha_1 = np.append(alpha_1, alpha_1)
@@ -96,11 +100,7 @@ def edge_simplicial_kuramoto(
     time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0, sigma=1.0, pbar=None, state=None
 ):
     """Edge simplicial kuramoto"""
-    if pbar is not None:
-        last_t, dt = state
-        n = int((time - last_t) / dt)
-        pbar.update(n)
-        state[0] = last_t + dt * n
+    _update_bar(pbar, state, time)
 
     rhs = alpha_1 + sigma * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
     if simplicial_complex.W2 is not None:
@@ -147,11 +147,7 @@ def adaptive_edge_simplicial_kuramoto(
     time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0, sigma=1.0, pbar=None, state=None
 ):
     """Edge simplicial kuramoto with adaptive coupling."""
-    if pbar is not None:
-        last_t, dt = state
-        n = int((time - last_t) / dt)
-        pbar.update(n)
-        state[0] = last_t + dt * n
+    _update_bar(pbar, state, time)
 
     _, r_minus, r_plus = compute_order_parameter(simplicial_complex, np.array([phase]).T)
     rhs = alpha_1 + sigma * r_minus * simplicial_complex.N0.dot(
@@ -195,6 +191,80 @@ def integrate_adaptive_edge_kuramoto(
             alpha_1=alpha_1,
             alpha_2=alpha_2,
             sigma=sigma,
+            pbar=pbar,
+            state=[0, t_max / n_t],
+        )
+        return solve_ivp(
+            rhs,
+            [0, t_max],
+            initial_phase,
+            t_eval=np.linspace(0, t_max, n_t),
+            method="BDF",
+            rtol=1.0e-8,
+            atol=1.0e-8,
+        )
+
+
+def tower_kuramoto(
+    time,
+    phase,
+    simplicial_complex=None,
+    alpha_0=None,
+    alpha_1=None,
+    alpha_2=None,
+    sigma_0=1.0,
+    sigma_1=1.0,
+    pbar=None,
+    state=None,
+):
+    _update_bar(pbar, state, time)
+    phase_node = phase[: simplicial_complex.n_nodes]
+    phase_edge = phase[simplicial_complex.n_nodes :]
+
+    sol_node = node_simplicial_kuramoto(
+        time,
+        phase_node,
+        simplicial_complex=simplicial_complex,
+        alpha_0=alpha_0 * simplicial_complex.N0s.dot(phase_edge),
+        alpha_1=phase_edge,
+        sigma=sigma_0,
+    )
+    sol_edge = edge_simplicial_kuramoto(
+        time,
+        phase_edge,
+        simplicial_complex=simplicial_complex,
+        alpha_1=alpha_1 * simplicial_complex.N0.dot(phase_node),
+        alpha_2=alpha_2,
+        sigma=sigma_1,
+        pbar=pbar,
+        state=state,
+    )
+    return np.append(sol_node, sol_edge)
+
+
+@use_with_xgi
+def integrate_tower_kuramoto(
+    simplicial_complex,
+    initial_phase,
+    t_max,
+    n_t,
+    alpha_0=0,
+    alpha_1=0,
+    alpha_2=0,
+    sigma_0=1.0,
+    sigma_1=1.0,
+    disable_tqdm=False,
+):
+    """Integrate the tower Kuramoto model."""
+    with tqdm(total=n_t, disable=disable_tqdm) as pbar:
+        rhs = partial(
+            tower_kuramoto,
+            simplicial_complex=simplicial_complex,
+            alpha_0=alpha_0,
+            alpha_1=alpha_1,
+            alpha_2=alpha_2,
+            sigma_0=sigma_0,
+            sigma_1=sigma_1,
             pbar=pbar,
             state=[0, t_max / n_t],
         )
