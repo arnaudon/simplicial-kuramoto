@@ -14,8 +14,7 @@ import pandas as pd
 import scipy as sc
 from tqdm import tqdm
 
-from simplicial_kuramoto.simplicial_complex import use_with_xgi
-from simplicial_kuramoto.integrators import integrate_edge_kuramoto
+from simplicial_kuramoto.integrators import integrate_edge_kuramoto, compute_order_parameter
 
 L = logging.getLogger(__name__)
 
@@ -131,51 +130,6 @@ def proj_subspace(vec, subspace):
     for direction in subspace.T:
         proj += np.outer(vec.dot(direction), direction)
     return np.linalg.norm(proj, axis=1)
-
-
-@use_with_xgi
-def compute_node_order_parameter(Gsc, result):
-    """Compute the node Kuramoto order parameter."""
-    w1_inv = 1.0 / np.diag(Gsc.W1.toarray())
-    return w1_inv.dot(np.cos(Gsc.N0.dot(result))) / w1_inv.sum()
-
-
-@use_with_xgi
-def compute_order_parameter(Gsc, result, subset=None):
-    """Evaluate the order parameter, or the partial one for subset edges.
-    Args:
-        result (array): result of simulation (edge lenght by timepoints)
-        Gsc (SimplicialComplex): simplicial complex
-        subset (array): bool or int array of edges in the subset to consider
-
-    Returns:
-        total order, node order, face order
-    """
-    w0_inv = 1.0 / np.diag(Gsc.W0.toarray())
-    if Gsc.W2 is not None:
-        w2_inv = 1.0 / np.diag(Gsc.W2.toarray())
-
-    if subset is not None:
-        # if we have at least an adjacent edge in subset
-        w0_inv = w0_inv * np.clip(abs(Gsc.B0.T).dot(subset), 0, 1)
-        # if we have all 3 edges in subset
-        w2_inv = w2_inv * (abs(Gsc.B1).dot(subset) == 3)
-
-    order_node = w0_inv.dot(np.cos(Gsc.N0s.dot(result)))
-    norm_node = w0_inv.sum()
-
-    if Gsc.W2 is not None:
-        order_face = w2_inv.dot(np.cos(Gsc.N1.dot(result)))
-        norm_face = w2_inv.sum()
-    else:
-        order_face = 0
-        norm_face = 0
-
-    return (
-        (order_node + order_face) / (norm_node + norm_face),
-        order_node / norm_node,
-        order_face / norm_face if norm_face > 0 else 0,
-    )
 
 
 def get_projection_fit(

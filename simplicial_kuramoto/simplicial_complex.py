@@ -279,9 +279,6 @@ def use_with_xgi(func):
 
 def _prepare(simplicial_complex):
     """Prepare simplicial complex if it is from xgi package to be used here as usual."""
-    if isinstance(simplicial_complex, SimplicialComplex):
-        return simplicial_complex
-
     if isinstance(simplicial_complex, xgi.SimplicialComplex):
         B0 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 1, None, False).T)
         B0 = B0[:, simplicial_complex.nodes]  # order as we do here
@@ -325,4 +322,4 @@ def _prepare(simplicial_complex):
             lifted_N1sn = neg(N1s.dot(V2.T))
 
         return Sc
-    raise Exception("SimplicialComplex structure now known")
+    return simplicial_complex
