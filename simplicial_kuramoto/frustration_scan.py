@@ -356,7 +356,7 @@ def plot_order_1d(
         std_harm_df = _std(alphas, std_harm_order)
         plt.errorbar(harm_order_df.index, harm_order_df.data, yerr=std_harm_df.data, c="C4")
     plt.plot(harm_order_df.index, harm_order_df.data, "-", c="C4", label="std(order)")
-    plt.gca().set_ylim(-0.01, max(max(std_harm_order), 0.1))
+    plt.gca().set_ylim(-0.01, max(*std_harm_order, 0.1))
     axs[1].set_xlim(alphas[0], alphas[-1])
     plt.legend(loc="upper left")
     plt.ylabel("std(order)")

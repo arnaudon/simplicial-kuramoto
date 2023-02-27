@@ -1,5 +1,6 @@
 """Numerical integrators."""
 from functools import partial
+
 import numpy as np
 from scipy.integrate import solve_ivp
 from tqdm import tqdm
@@ -77,7 +78,6 @@ def integrate_edge_kuramoto(
 ):
     """Integrate the edge Kuramoto model."""
     with tqdm(total=n_t, disable=disable_tqdm) as pbar:
-
         rhs = partial(
             edge_simplicial_kuramoto,
             simplicial_complex=simplicial_complex,

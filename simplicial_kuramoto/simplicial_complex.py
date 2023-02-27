@@ -323,3 +323,4 @@ def _prepare(simplicial_complex):
             lifted_N1sn = neg(N1s.dot(V2.T))
 
         return Sc
+    raise Exception("SimplicialComplex structure now known")

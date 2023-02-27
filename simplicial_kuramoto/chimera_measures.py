@@ -107,7 +107,6 @@ def shanahan_metrics(results, alpha1, alpha2, edge_community_assignment):
     ceg_matrix = pd.DataFrame()
 
     for i, (a1, a2) in enumerate(product(alpha1, alpha2)):
-
         gms_ = []
         chi_ = []
         ce_ = []
