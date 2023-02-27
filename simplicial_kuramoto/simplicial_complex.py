@@ -3,8 +3,10 @@ import networkx as nx
 import numpy as np
 import scipy as sc
 
-
-import xgi
+try:
+    import xgi
+except ImportError:
+    pass
 
 
 def pos(matrix):
