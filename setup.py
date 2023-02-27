@@ -17,5 +17,6 @@ setup(
         "tqdm",
         "nolds",
     ],
+    extras_require={"all": ["xgi"]},
     packages=find_packages(),
 )

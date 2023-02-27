@@ -5,6 +5,8 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
+from simplicial_kuramoto.simplicial_complex import use_with_xgi
+
 
 def node_simplicial_kuramoto(
     time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0, sigma=1.0, pbar=None, state=None
@@ -18,12 +20,12 @@ def node_simplicial_kuramoto(
 
     if not isinstance(alpha_1, float):
         alpha_1 = np.append(alpha_1, alpha_1)
-
     return -alpha_0 - sigma * simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
 
 
+@use_with_xgi
 def integrate_node_kuramoto(
     simplicial_complex, initial_phase, t_max, n_t, alpha_0=0, alpha_1=0, sigma=1.0
 ):
@@ -63,6 +65,7 @@ def edge_simplicial_kuramoto(
     return -rhs
 
 
+@use_with_xgi
 def integrate_edge_kuramoto(
     simplicial_complex,
     initial_phase,
@@ -74,9 +77,7 @@ def integrate_edge_kuramoto(
     disable_tqdm=False,
 ):
     """Integrate the edge Kuramoto model."""
-
     with tqdm(total=n_t, disable=disable_tqdm) as pbar:
-
         rhs = partial(
             edge_simplicial_kuramoto,
             simplicial_complex=simplicial_complex,
