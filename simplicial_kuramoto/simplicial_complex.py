@@ -288,19 +288,19 @@ def _prepare(simplicial_complex):
         B1 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 2, None, False).T)
 
         # here we use identity weight matrices, to improve later with xgi data
-        W0 = sc.sparse.spdiags(
+        _W0 = sc.sparse.spdiags(
             np.ones(simplicial_complex.num_nodes),
             0,
             simplicial_complex.num_nodes,
             simplicial_complex.num_nodes,
         )
         n_edges = sum(1 if len(e) == 2 else 0 for e in simplicial_complex.edges.members())
-        W1 = sc.sparse.spdiags(np.ones(n_edges), 0, n_edges, n_edges)
+        _W1 = sc.sparse.spdiags(np.ones(n_edges), 0, n_edges, n_edges)
         n_faces = sum(1 if len(e) == 3 else 0 for e in simplicial_complex.edges.members())
         _W2 = sc.sparse.spdiags(np.ones(n_faces), 0, n_faces, n_faces)
 
-        W1_inv = W1.copy()
-        W1_inv.data = 1.0 / W1.data
+        W1_inv = _W1.copy()
+        W1_inv.data = 1.0 / W1_inv.data
         W2_inv = _W2.copy()
         W2_inv.data = 1.0 / W2_inv.data
 
@@ -310,6 +310,8 @@ def _prepare(simplicial_complex):
         class Sc:
             """Container to make xgi.SimplicialComplex look like internal one."""
 
+            W0 = _W0
+            W1 = _W1
             W2 = _W2
 
             N0 = B0

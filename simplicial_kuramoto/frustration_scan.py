@@ -14,6 +14,7 @@ import pandas as pd
 import scipy as sc
 from tqdm import tqdm
 
+from simplicial_kuramoto.simplicial_complex import use_with_xgi
 from simplicial_kuramoto.integrators import integrate_edge_kuramoto
 
 L = logging.getLogger(__name__)
@@ -132,13 +133,15 @@ def proj_subspace(vec, subspace):
     return np.linalg.norm(proj, axis=1)
 
 
-def compute_node_order_parameter(result, Gsc):
+@use_with_xgi
+def compute_node_order_parameter(Gsc, result):
     """Compute the node Kuramoto order parameter."""
     w1_inv = 1.0 / np.diag(Gsc.W1.toarray())
     return w1_inv.dot(np.cos(Gsc.N0.dot(result))) / w1_inv.sum()
 
 
-def compute_order_parameter(result, Gsc, subset=None):
+@use_with_xgi
+def compute_order_parameter(Gsc, result, subset=None):
     """Evaluate the order parameter, or the partial one for subset edges.
     Args:
         result (array): result of simulation (edge lenght by timepoints)
@@ -206,7 +209,7 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     curl_slope = curl_slope[0]
     harm_slope = harm_slope[0]
 
-    harm_order = np.mean(compute_order_parameter(res, Gsc)[0])
+    harm_order = np.mean(compute_order_parameter(Gsc, res)[0])
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
@@ -265,7 +268,7 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     curl_slope = curl_slope[0]
     harm_slope = harm_slope[0]
 
-    harm_order = compute_order_parameter(res, Gsc)[0]
+    harm_order = compute_order_parameter(Gsc, res)[0]
     mean_harm_order = np.mean(harm_order)
     std_harm_order = np.std(harm_order)
 
