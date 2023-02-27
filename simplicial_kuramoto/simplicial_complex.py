@@ -4,6 +4,9 @@ import numpy as np
 import scipy as sc
 
 
+import xgi
+
+
 def pos(matrix):
     """Return positive part of matrix."""
     _matrix = matrix.copy()
@@ -257,3 +260,64 @@ class SimplicialComplex:
         if self._lifted_N1sn is None:
             self._lifted_N1sn = neg(self.N1s.dot(self.V2.T))
         return self._lifted_N1sn
+
+
+def use_with_xgi(func):
+    """Use this as a decorator to convert xgi simplicial complex to internal structure.
+
+    First argument of the functiou should be a SimplicialComplex object (internal of xgi)
+    """
+
+    def _process(*args, **kwargs):
+        sc = _prepare(args[0])
+        return func(sc, *args[1:], **kwargs)
+
+    return _process
+
+
+def _prepare(simplicial_complex):
+    """Prepare simplicial complex if it is from xgi package to be used here as usual."""
+    if isinstance(simplicial_complex, SimplicialComplex):
+        return simplicial_complex
+
+    if isinstance(simplicial_complex, xgi.SimplicialComplex):
+        B0 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 1, None, False).T)
+        B0 = B0[:, simplicial_complex.nodes]  # order as we do here
+        B1 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 2, None, False).T)
+
+        # here we use identity weight matrices, to improve later with xgi data
+        W0 = sc.sparse.spdiags(
+            np.ones(simplicial_complex.num_nodes),
+            0,
+            simplicial_complex.num_nodes,
+            simplicial_complex.num_nodes,
+        )
+        n_edges = sum(1 if len(e) == 2 else 0 for e in simplicial_complex.edges.members())
+        W1 = sc.sparse.spdiags(np.ones(n_edges), 0, n_edges, n_edges)
+        n_faces = sum(1 if len(e) == 3 else 0 for e in simplicial_complex.edges.members())
+        _W2 = sc.sparse.spdiags(np.ones(n_faces), 0, n_faces, n_faces)
+
+        W1_inv = W1.copy()
+        W1_inv.data = 1.0 / W1.data
+        W2_inv = _W2.copy()
+        W2_inv.data = 1.0 / W2_inv.data
+
+        V1 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_edges), -np.eye(n_edges)), axis=0))
+        V2 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_faces), -np.eye(n_faces)), axis=0))
+
+        class Sc:
+            """Container to make xgi.SimplicialComplex look like internal one."""
+
+            W2 = _W2
+
+            N0 = B0
+            N0s = W0.dot(B0.T).dot(W1_inv)
+            lifted_N0 = V1.dot(N0)
+            lifted_N0sn = neg(N0s.dot(V1.T))
+
+            N1s = W1.dot(B1.T).dot(W2_inv)
+            N1 = B1
+            lifted_N1 = V2.dot(N1)
+            lifted_N1sn = neg(N1s.dot(V2.T))
+
+        return Sc
