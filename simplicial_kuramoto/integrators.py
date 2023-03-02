@@ -104,6 +104,10 @@ def edge_simplicial_kuramoto(
 
     rhs = alpha_1 + sigma * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
     if simplicial_complex.W2 is not None:
+
+        if not isinstance(alpha_2, float):
+            alpha_2 = np.append(alpha_2, alpha_2)
+
         rhs += sigma * simplicial_complex.lifted_N1sn.dot(
             np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
         )
