@@ -27,6 +27,7 @@ def compute_order_parameter(Gsc, result, subset=None):
         w2_inv = 1.0 / np.diag(Gsc.W2.toarray())
 
     if subset is not None:
+        print('WARNING: check this')
         # if we have at least an adjacent edge in subset
         w0_inv = w0_inv * np.clip(abs(Gsc.B0.T).dot(subset), 0, 1)
         # if we have all 3 edges in subset

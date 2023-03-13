@@ -6,6 +6,7 @@ from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
 from simplicial_kuramoto.simplicial_complex import use_with_xgi
+from simplicial_kuramoto.measures import compute_order_parameter
 
 
 def _update_bar(pbar, state, time):
@@ -114,39 +115,56 @@ def integrate_edge_kuramoto(
         )
 
 
-def adaptive_edge_simplicial_kuramoto(
-    time, phase, simplicial_complex=None, alpha_1=0, alpha_2=0, sigma=1.0, pbar=None, state=None
+def nonlinear_edge_simplicial_kuramoto(
+    time,
+    phase,
+    simplicial_complex=None,
+    alpha_1=0,
+    alpha_2=0,
+    sigma_down=1.0,
+    sigma_up=1.0,
+    pbar=None,
+    state=None,
+    coupling_function="cross",
+    epsilon=1.0,
 ):
-    """Edge simplicial kuramoto with adaptive coupling."""
+    """Edge simplicial kuramoto with nonlinear coupling."""
     _update_bar(pbar, state, time)
 
-    _, r_minus, r_plus = compute_order_parameter(simplicial_complex, np.array([phase]).T)
-    rhs = alpha_1 + sigma * r_minus * simplicial_complex.N0.dot(
-        np.sin(simplicial_complex.N0s.dot(phase))
-    )
+    r, r_minus, r_plus = compute_order_parameter(simplicial_complex, np.array([phase]).T)
+    rhs_minus = sigma_down * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
+
+    if coupling_function == "cross":
+        rhs = alpha_1 + (1.0 - epsilon + epsilon * r_plus) * rhs_minus
+    if coupling_function == "quadratic":
+        rhs = alpha_1 + (1.0 - epsilon + epsilon * r) * rhs_minus
+
     if simplicial_complex.W2 is not None:
-        rhs += (
-            sigma
-            * r_plus
-            * simplicial_complex.lifted_N1sn.dot(
-                np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
-            )
+        rhs_plus = sigma_up * simplicial_complex.lifted_N1sn.dot(
+            np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
         )
+        if coupling_function == "cross":
+            rhs += (1.0 - epsilon + epsilon * r_minus) * rhs_plus
+        if coupling_function == "quadratic":
+            rhs += (1.0 - epsilon + epsilon * r) * rhs_plus
     return -rhs
 
 
 @use_with_xgi
-def integrate_adaptive_edge_kuramoto(
+def integrate_nonlinear_edge_kuramoto(
     simplicial_complex,
     initial_phase,
     t_max,
     n_t,
     alpha_1=0,
     alpha_2=0,
-    sigma=1.0,
+    sigma_up=1.0,
+    sigma_down=1.0,
+    coupling_function="cross",
+    epsilon=1.0,
     disable_tqdm=False,
 ):
-    """Integrate the edge Kuramoto model with adaptive coupling.
+    """Integrate the edge Kuramoto model with nonlinear coupling.
 
     This model is inspired by
 
@@ -157,13 +175,16 @@ def integrate_adaptive_edge_kuramoto(
     """
     with tqdm(total=n_t, disable=disable_tqdm) as pbar:
         rhs = partial(
-            adaptive_edge_simplicial_kuramoto,
+            nonlinear_edge_simplicial_kuramoto,
             simplicial_complex=simplicial_complex,
             alpha_1=alpha_1,
             alpha_2=alpha_2,
-            sigma=sigma,
+            sigma_up=sigma_up,
+            sigma_down=sigma_down,
             pbar=pbar,
             state=[0, t_max / n_t],
+            coupling_function=coupling_function,
+            epsilon=epsilon,
         )
         return solve_ivp(
             rhs,
