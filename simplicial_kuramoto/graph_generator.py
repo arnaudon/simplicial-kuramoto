@@ -1,9 +1,13 @@
 """Graph generation."""
 import itertools
+import matplotlib.pyplot as plt
 
 import networkx as nx
 import numpy as np
 from scipy import spatial
+
+import xgi
+from simplicial_kuramoto import SimplicialComplex
 
 # pylint: disable=too-many-nested-blocks,too-many-branches
 
@@ -143,3 +147,41 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
     for n, p in zip(graph.nodes, points):
         graph.nodes[n]["pos"] = p
     return graph, points
+
+
+def _make_simple_internal():
+
+    G = nx.Graph()
+
+    G.add_edge(0, 1, weight=1)
+    G.add_edge(1, 2, weight=1)
+    G.add_edge(2, 0, weight=1)
+    G.add_edge(0, 3, weight=1)
+    G.add_edge(1, 3, weight=1)
+
+    # pos = nx.spring_layout(G,)
+    pos_ = {}
+    pos_[0] = np.array([0, 0])
+    pos_[1] = np.array([0, 1])
+    pos_[2] = np.array([1, 0.5])
+    pos_[3] = np.array([-1, 0.5])
+
+    for n in G.nodes:
+        G.nodes[n]["pos"] = pos_[n]
+
+    return SimplicialComplex(graph=G, faces=[[0, 1, 2]])
+
+
+def make_simple(plot=False):
+    """Make simple simplicial complex with one face and one hole."""
+    sc = _make_simple_internal()
+    pos = {n: sc.graph.nodes[n]["pos"] for n in sc.graph.nodes}
+    sc_xgi = xgi.SimplicialComplex([list(e) for e in sc.graph.edges])
+    sc_xgi.add_simplices_from(sc.faces)
+
+    if plot:
+        plt.figure()
+        xgi.draw(sc_xgi, pos=pos)
+        plt.axis([-1.5, 1.5, -1.5, 1.5])
+
+    return sc_xgi
