@@ -14,7 +14,7 @@ import pandas as pd
 import scipy as sc
 from tqdm import tqdm
 
-from simplicial_kuramoto.integrators import integrate_edge_kuramoto, compute_order_parameter
+from simplicial_kuramoto.integrators import compute_order_parameter, integrate_edge_kuramoto
 
 L = logging.getLogger(__name__)
 

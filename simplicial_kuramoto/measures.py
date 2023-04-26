@@ -1,3 +1,4 @@
+"""Various measures on simplicial Kuramoto solutions."""
 import numpy as np
 from scipy.optimize import linprog
 
@@ -27,7 +28,7 @@ def compute_order_parameter(Gsc, result, subset=None):
         w2_inv = 1.0 / np.diag(Gsc.W2.toarray())
 
     if subset is not None:
-        print('WARNING: check this')
+        print("WARNING: check this")
         # if we have at least an adjacent edge in subset
         w0_inv = w0_inv * np.clip(abs(Gsc.B0.T).dot(subset), 0, 1)
         # if we have all 3 edges in subset
@@ -56,16 +57,17 @@ def norm(v, Winv):
 
 
 @use_with_xgi
-def natural_potentials(sc, alpha_1, alpha_2):
+def natural_potentials(sc, alpha_1):
+    """Natural potentials."""
     beta_down = np.linalg.pinv(sc.N0.toarray()).dot(alpha_1)
     beta_up = np.linalg.pinv(sc.N1s.toarray()).dot(alpha_1)
     return beta_down, beta_up
 
 
 @use_with_xgi
-def compute_sufficient_bounds(sc, alpha_1, alpha_2, gamma=np.pi / 2.0):
+def compute_sufficient_bounds(sc, alpha_1, gamma=np.pi / 2.0):
     """Compute sufficient bounds for stability."""
-    beta_down, beta_up = natural_potentials(sc, alpha_1, alpha_2)
+    beta_down, beta_up = natural_potentials(sc, alpha_1)
     w0inv = np.linalg.inv(sc.W0.toarray())
     w2inv = np.linalg.inv(sc.W2.toarray())
     bound_down = np.sqrt(np.max(sc.W0.toarray())) * norm(beta_down, w0inv) / np.sin(gamma)
@@ -74,12 +76,12 @@ def compute_sufficient_bounds(sc, alpha_1, alpha_2, gamma=np.pi / 2.0):
 
 
 @use_with_xgi
-def compute_necessary_bounds(sc, alpha_1, alpha_2):
+def compute_necessary_bounds(sc, alpha_1):
     """Compute necessary bounds for no phase locking.
 
     Sigmas smaller than these values will be guaranteed to not phase lock.
     """
-    beta_down, beta_up = natural_potentials(sc, alpha_1, alpha_2)
+    beta_down, beta_up = natural_potentials(sc, alpha_1)
     w0inv = np.linalg.inv(sc.W0.toarray())
     w2inv = np.linalg.inv(sc.W2.toarray())
     sigma_down = norm(beta_down, w0inv) / np.sqrt(np.diag(w0inv).sum())
@@ -88,10 +90,10 @@ def compute_necessary_bounds(sc, alpha_1, alpha_2):
 
 
 @use_with_xgi
-def compute_critical_couplings(sc, alpha_1, alpha_2):
+def compute_critical_couplings(sc, alpha_1):
     """Compute critical couplings for phase locking."""
 
-    beta_down, beta_up = natural_potentials(sc, alpha_1, alpha_2)
+    beta_down, beta_up = natural_potentials(sc, alpha_1)
 
     def solve(beta):
         c = np.zeros(len(beta) + 1)

@@ -1,0 +1,9 @@
+Several variants of the simplical Kuramoto model are illustrated here.
+
+They consist in:
+
+- simplicial: base simplicial Kuramoto model
+- contrarian: with negative sigmas
+- frustration: with face frustration
+- nonlinear: with nonlinear gradient flow formulation and explosive behavior
+- dirac: with dirac coupling accros orders

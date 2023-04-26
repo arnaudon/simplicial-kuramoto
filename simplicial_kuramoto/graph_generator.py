@@ -1,12 +1,12 @@
 """Graph generation."""
 import itertools
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import xgi
 from scipy import spatial
 
-import xgi
 from simplicial_kuramoto import SimplicialComplex
 
 # pylint: disable=too-many-nested-blocks,too-many-branches
@@ -150,7 +150,6 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
 
 
 def _make_simple_internal():
-
     G = nx.Graph()
 
     G.add_edge(0, 1, weight=1)

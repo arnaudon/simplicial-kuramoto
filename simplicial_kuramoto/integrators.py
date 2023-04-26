@@ -5,8 +5,8 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from tqdm import tqdm
 
-from simplicial_kuramoto.simplicial_complex import use_with_xgi
 from simplicial_kuramoto.measures import compute_order_parameter
+from simplicial_kuramoto.simplicial_complex import use_with_xgi
 
 
 def _update_bar(pbar, state, time):
@@ -70,7 +70,6 @@ def edge_simplicial_kuramoto(
         np.sin(simplicial_complex.N0s.dot(phase))
     )
     if simplicial_complex.W2 is not None:
-
         if not isinstance(alpha_2, float):
             alpha_2 = np.append(alpha_2, alpha_2)
 
@@ -209,6 +208,7 @@ def tower_kuramoto(
     pbar=None,
     state=None,
 ):
+    """Tower kuramoto."""
     _update_bar(pbar, state, time)
     phase_node = phase[: simplicial_complex.n_nodes]
     phase_edge = phase[simplicial_complex.n_nodes :]
@@ -227,7 +227,8 @@ def tower_kuramoto(
         simplicial_complex=simplicial_complex,
         alpha_1=alpha_1 * simplicial_complex.N0.dot(phase_node),
         alpha_2=alpha_2,
-        sigma=sigma_1,
+        sigma_up=sigma_1,
+        sigma_down=sigma_1,
         pbar=pbar,
         state=state,
     )
