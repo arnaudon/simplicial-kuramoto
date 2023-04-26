@@ -280,10 +280,13 @@ def use_with_xgi(func):
 def _prepare(simplicial_complex):
     """Prepare simplicial complex if it is from xgi package to be used here as usual."""
     if isinstance(simplicial_complex, xgi.SimplicialComplex):
-        # pylint: disable=no-member
-        B0 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 1, None, False).T)
+        B0 = sc.sparse.csr_matrix(
+            xgi.linalg.hodge_matrix.boundary_matrix(simplicial_complex, 1, None, False).T
+        )
         B0 = B0[:, simplicial_complex.nodes]  # order as we do here
-        B1 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 2, None, False).T)
+        B1 = sc.sparse.csr_matrix(
+            xgi.linalg.hodge_matrix.boundary_matrix(simplicial_complex, 2, None, False).T
+        )
 
         # here we use identity weight matrices, to improve later with xgi data
         _W0 = sc.sparse.spdiags(

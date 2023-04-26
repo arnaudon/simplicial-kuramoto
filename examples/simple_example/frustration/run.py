@@ -4,15 +4,13 @@ import matplotlib.pyplot as plt
 from tqdm import tqdm
 
 from simplicial_kuramoto.integrators import integrate_edge_kuramoto
-from simplicial_kuramoto.measures import compute_order_parameter
+from simplicial_kuramoto.graph_generator import make_simple
 from simplicial_kuramoto.measures import (
+    compute_order_parameter,
     compute_critical_couplings,
     compute_necessary_bounds,
     compute_sufficient_bounds,
 )
-
-from simplicial_kuramoto.graph_generator import make_simple
-
 
 if __name__ == "__main__":
     t_max = 5000
@@ -21,13 +19,11 @@ if __name__ == "__main__":
 
     np.random.seed(42)
 
-    sc = make_simple(plot=True)
-    plt.savefig('sc.pdf')
-    plt.close()
+    sc = make_simple()
 
     phase_init = np.random.uniform(0, np.pi, 5)
     alpha_1 = np.random.uniform(0, 1, 5)
-    alpha_2 = 0.0
+    alpha_2 = 1.0
 
     sigma_down, sigma_up = compute_necessary_bounds(sc, alpha_1)
     sigma_down_critical, sigma_up_critical = compute_critical_couplings(sc, alpha_1)
@@ -37,6 +33,7 @@ if __name__ == "__main__":
     n = []
     f = []
     for sigma in tqdm(sigmas):
+
         edge_res = integrate_edge_kuramoto(
             sc,
             phase_init,
@@ -44,8 +41,8 @@ if __name__ == "__main__":
             n_t,
             alpha_1=alpha_1,
             alpha_2=alpha_2,
-            sigma_up=1,
             sigma_down=sigma,
+            sigma_up=1.0,
             disable_tqdm=True,
         )
 
@@ -60,8 +57,8 @@ if __name__ == "__main__":
     plt.axvline(sigma_down, label="down", c="k")
     plt.axvline(sigma_down_critical, label="down critical", c="r")
     plt.axvline(bounds_down, label="bound down", c="m")
-    plt.xlabel('sigma down')
-    plt.ylabel('order parameter')
+    plt.xlabel("sigma down")
+    plt.ylabel("order parameter")
     plt.legend()
     plt.savefig("stability_sigma_down.pdf")
 
@@ -91,7 +88,7 @@ if __name__ == "__main__":
     plt.axvline(sigma_up, label="up", c="k")
     plt.axvline(sigma_up_critical, label="up critical", c="r")
     plt.axvline(bounds_up, label="bound up", c="m")
-    plt.xlabel('sigma up')
-    plt.ylabel('order parameter')
+    plt.xlabel("sigma up")
+    plt.ylabel("order parameter")
     plt.legend()
     plt.savefig("stability_sigma_up.pdf")

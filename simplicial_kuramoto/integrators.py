@@ -60,22 +60,51 @@ def edge_simplicial_kuramoto(
     alpha_2=0,
     sigma_up=1.0,
     sigma_down=1.0,
+    variant=None,
+    variant_params=None,
     pbar=None,
     state=None,
 ):
     """Edge simplicial kuramoto"""
     _update_bar(pbar, state, time)
 
+    if variant == "nonlinear":
+        r, r_minus, r_plus = compute_order_parameter(simplicial_complex, np.array([phase]).T)
+        rhs_minus = sigma_down * simplicial_complex.N0.dot(
+            np.sin(simplicial_complex.N0s.dot(phase))
+        )
+
+        if variant_params["coupling_function"] == "cross":
+            rhs = alpha_1 + (1.0 + variant_params["epsilon"] * (r_plus - 1)) * rhs_minus
+        if variant_params["coupling_function"] == "quadratic":
+            rhs = alpha_1 + (1.0 + variant_params["epsilon"] * (r - 1)) * rhs_minus
+
+        if simplicial_complex.W2 is not None:
+            rhs_plus = sigma_up * simplicial_complex.lifted_N1sn.dot(
+                np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
+            )
+            if variant_params["coupling_function"] == "cross":
+                rhs += (1.0 + variant_params["epsilon"] * (r_minus - 1)) * rhs_plus
+            if variant_params["coupling_function"] == "quadratic":
+                rhs += (1.0 + variant_params["epsilon"](r - 1)) * rhs_plus
+        return -rhs
+
     rhs = alpha_1 + sigma_down * simplicial_complex.N0.dot(
         np.sin(simplicial_complex.N0s.dot(phase))
     )
+
     if simplicial_complex.W2 is not None:
         if not isinstance(alpha_2, float):
             alpha_2 = np.append(alpha_2, alpha_2)
 
-        rhs += sigma_up * simplicial_complex.lifted_N1sn.dot(
-            np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
-        )
+        if variant == "non_invariant":
+            rhs += sigma_up * simplicial_complex.N1s.dot(
+                np.sin(simplicial_complex.N1.dot(phase) + alpha_2)
+            )
+        else:
+            rhs += sigma_up * simplicial_complex.lifted_N1sn.dot(
+                np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
+            )
     return -rhs
 
 
@@ -90,8 +119,35 @@ def integrate_edge_kuramoto(
     sigma_down=1.0,
     sigma_up=1.0,
     disable_tqdm=False,
+    variant=None,
+    variant_params=None,
 ):
-    """Integrate the edge Kuramoto model."""
+    """Integrate the edge Kuramoto model.
+
+    Several variants are implemented from this function.
+
+    By default, the model is the Kuramoto-Sakaguchi with orientation invariant frustration.
+
+    If variant='non_invariant' the orientation invariance is dropped.
+
+    If variant='nonlinear', the nonlinear, or explosive version is used.
+    This variant has the following parameters:
+        - coupling_function:  cross or quadratic
+        - epsilon: parameter for the coupling function
+
+    Args:
+        simplicial_complex (either xgi or internal): simplicial complex to support the dynamics
+        initial_phase (vector): initial edge phases
+        t_max (float): max time integration
+        n_t (int): number of timesteps
+        alpha_1 (float/vector): natural frequency/ies (len(edges) size)
+        alpha_2 (float/vector): face frustration/s (len(faces) size)
+        sigma_down (float/vector): down term amplitude/s (len(edges) size)
+        sigma_up (float/vector): up term amplitude/s (len(edges) size)
+        disable_tqdm (bool): show progress bar or not
+        variant (str): can be None or 'non_invariant' or 'nonlinear'
+        variant_params (dict): params for the variant (see docstring)
+    """
     with tqdm(total=n_t, disable=disable_tqdm) as pbar:
         rhs = partial(
             edge_simplicial_kuramoto,
@@ -100,90 +156,10 @@ def integrate_edge_kuramoto(
             alpha_2=alpha_2,
             sigma_up=sigma_up,
             sigma_down=sigma_down,
+            variant=variant,
+            variant_params=variant_params,
             pbar=pbar,
             state=[0, t_max / n_t],
-        )
-        return solve_ivp(
-            rhs,
-            [0, t_max],
-            initial_phase,
-            t_eval=np.linspace(0, t_max, n_t),
-            method="BDF",
-            rtol=1.0e-8,
-            atol=1.0e-8,
-        )
-
-
-def nonlinear_edge_simplicial_kuramoto(
-    time,
-    phase,
-    simplicial_complex=None,
-    alpha_1=0,
-    alpha_2=0,
-    sigma_down=1.0,
-    sigma_up=1.0,
-    pbar=None,
-    state=None,
-    coupling_function="cross",
-    epsilon=1.0,
-):
-    """Edge simplicial kuramoto with nonlinear coupling."""
-    _update_bar(pbar, state, time)
-
-    r, r_minus, r_plus = compute_order_parameter(simplicial_complex, np.array([phase]).T)
-    rhs_minus = sigma_down * simplicial_complex.N0.dot(np.sin(simplicial_complex.N0s.dot(phase)))
-
-    if coupling_function == "cross":
-        rhs = alpha_1 + (1.0 - epsilon + epsilon * r_plus) * rhs_minus
-    if coupling_function == "quadratic":
-        rhs = alpha_1 + (1.0 - epsilon + epsilon * r) * rhs_minus
-
-    if simplicial_complex.W2 is not None:
-        rhs_plus = sigma_up * simplicial_complex.lifted_N1sn.dot(
-            np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
-        )
-        if coupling_function == "cross":
-            rhs += (1.0 - epsilon + epsilon * r_minus) * rhs_plus
-        if coupling_function == "quadratic":
-            rhs += (1.0 - epsilon + epsilon * r) * rhs_plus
-    return -rhs
-
-
-@use_with_xgi
-def integrate_nonlinear_edge_kuramoto(
-    simplicial_complex,
-    initial_phase,
-    t_max,
-    n_t,
-    alpha_1=0,
-    alpha_2=0,
-    sigma_up=1.0,
-    sigma_down=1.0,
-    coupling_function="cross",
-    epsilon=1.0,
-    disable_tqdm=False,
-):
-    """Integrate the edge Kuramoto model with nonlinear coupling.
-
-    This model is inspired by
-
-    Millán, Ana P., Joaquín J. Torres, and Ginestra Bianconi. "Explosive higher-order Kuramoto
-    dynamics on simplicial complexes." Physical Review Letters 124.21 (2020): 218301.
-
-    but with the order parameters defined via boundary operators, instead of classic ones.
-    """
-    with tqdm(total=n_t, disable=disable_tqdm) as pbar:
-        rhs = partial(
-            nonlinear_edge_simplicial_kuramoto,
-            simplicial_complex=simplicial_complex,
-            alpha_1=alpha_1,
-            alpha_2=alpha_2,
-            sigma_up=sigma_up,
-            sigma_down=sigma_down,
-            pbar=pbar,
-            state=[0, t_max / n_t],
-            coupling_function=coupling_function,
-            epsilon=epsilon,
         )
         return solve_ivp(
             rhs,
