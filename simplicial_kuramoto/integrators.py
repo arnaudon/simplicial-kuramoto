@@ -73,20 +73,21 @@ def edge_simplicial_kuramoto(
         rhs_minus = sigma_down * simplicial_complex.N0.dot(
             np.sin(simplicial_complex.N0s.dot(phase))
         )
-
-        if variant_params["coupling_function"] == "cross":
-            rhs = alpha_1 + (1.0 + variant_params["epsilon"] * (r_plus - 1)) * rhs_minus
-        if variant_params["coupling_function"] == "quadratic":
-            rhs = alpha_1 + (1.0 + variant_params["epsilon"] * (r - 1)) * rhs_minus
+        coupling_function = variant_params.get("coupling_function", "cross")
+        epsilon = variant_params.get("epsilon", 1)
+        if coupling_function == "cross":
+            rhs = alpha_1 + (1.0 + epsilon * (r_plus - 1)) * rhs_minus
+        if coupling_function == "quadratic":
+            rhs = alpha_1 + (1.0 + epsilon * (r - 1)) * rhs_minus
 
         if simplicial_complex.W2 is not None:
             rhs_plus = sigma_up * simplicial_complex.lifted_N1sn.dot(
                 np.sin(simplicial_complex.lifted_N1.dot(phase) + alpha_2)
             )
-            if variant_params["coupling_function"] == "cross":
-                rhs += (1.0 + variant_params["epsilon"] * (r_minus - 1)) * rhs_plus
-            if variant_params["coupling_function"] == "quadratic":
-                rhs += (1.0 + variant_params["epsilon"](r - 1)) * rhs_plus
+            if coupling_function == "cross":
+                rhs += (1.0 + epsilon * (r_minus - 1)) * rhs_plus
+            if coupling_function == "quadratic":
+                rhs += (1.0 + epsilon(r - 1)) * rhs_plus
         return -rhs
 
     rhs = alpha_1 + sigma_down * simplicial_complex.N0.dot(

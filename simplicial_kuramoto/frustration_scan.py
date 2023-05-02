@@ -15,6 +15,7 @@ import scipy as sc
 from tqdm import tqdm
 
 from simplicial_kuramoto.integrators import compute_order_parameter, integrate_edge_kuramoto
+from simplicial_kuramoto.simplicial_complex import use_with_xgi
 
 L = logging.getLogger(__name__)
 
@@ -112,15 +113,16 @@ def scan_frustration_parameters(
     return results
 
 
+@use_with_xgi
 def get_subspaces(Gsc):
     """ "Get grad, curl and harm subspaces from simplicial complex."""
     grad_subspace = sc.linalg.orth(Gsc.N0.todense())
     try:
         curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
     except (ValueError, AttributeError):
-        curl_subspace = np.zeros([len(Gsc.graph.edges), 0])
+        curl_subspace = np.zeros([Gsc.n_edges, 0])
 
-    harm_subspace = sc.linalg.null_space(Gsc.L1.todense())
+    harm_subspace = sc.linalg.null_space(Gsc.L1.todense(), rcond=1e-1)
     return grad_subspace, curl_subspace, harm_subspace
 
 

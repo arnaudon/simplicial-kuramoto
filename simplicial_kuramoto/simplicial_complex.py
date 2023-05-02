@@ -298,12 +298,16 @@ def _prepare(simplicial_complex):
         n_edges = sum(1 if len(e) == 2 else 0 for e in simplicial_complex.edges.members())
         _W1 = sc.sparse.spdiags(np.ones(n_edges), 0, n_edges, n_edges)
         n_faces = sum(1 if len(e) == 3 else 0 for e in simplicial_complex.edges.members())
-        _W2 = sc.sparse.spdiags(np.ones(n_faces), 0, n_faces, n_faces)
+        _W2 = None
+        if n_faces > 0:
+            _W2 = sc.sparse.spdiags(np.ones(n_faces), 0, n_faces, n_faces)
 
         W1_inv = _W1.copy()
         W1_inv.data = 1.0 / W1_inv.data
-        W2_inv = _W2.copy()
-        W2_inv.data = 1.0 / W2_inv.data
+        W2_inv = None
+        if _W2 is not None:
+            W2_inv = _W2.copy() if _W2 is not None else None
+            W2_inv.data = 1.0 / W2_inv.data
 
         V1 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_edges), -np.eye(n_edges)), axis=0))
         V2 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_faces), -np.eye(n_faces)), axis=0))
@@ -312,6 +316,7 @@ def _prepare(simplicial_complex):
             """Container to make xgi.SimplicialComplex look like internal one."""
 
             n_nodes = simplicial_complex.num_nodes
+            n_edges = simplicial_complex.num_edges
 
             W0 = _W0
             W1 = _W1
@@ -322,10 +327,14 @@ def _prepare(simplicial_complex):
             lifted_N0 = V1.dot(N0)
             lifted_N0sn = neg(N0s.dot(V1.T))
 
-            N1s = W1.dot(B1.T).dot(W2_inv)
-            N1 = B1
-            lifted_N1 = V2.dot(N1)
-            lifted_N1sn = neg(N1s.dot(V2.T))
+            if W2 is not None:
+                N1s = W1.dot(B1.T).dot(W2_inv)
+                N1 = B1
+                lifted_N1 = V2.dot(N1)
+                lifted_N1sn = neg(N1s.dot(V2.T))
+
+            L1 = N0.dot(N0s) + N1s.dot(N1) if W2 is not None else N0.dot(N0s)
 
         return Sc
+
     return simplicial_complex

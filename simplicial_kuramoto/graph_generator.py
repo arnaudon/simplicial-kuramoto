@@ -184,3 +184,17 @@ def make_simple(plot=False):
         plt.axis([-1.5, 1.5, -1.5, 1.5])
 
     return sc_xgi
+
+
+def make_complete(n=5, plot=False):
+    """Make a complete graph."""
+    G = nx.complete_graph(n)
+
+    sc_xgi = xgi.SimplicialComplex([list(e) for e in G.edges])
+
+    if plot:
+        plt.figure()
+        xgi.draw(sc_xgi)
+        plt.axis([-1.5, 1.5, -1.5, 1.5])
+
+    return sc_xgi
