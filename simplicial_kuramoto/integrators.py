@@ -18,13 +18,10 @@ def _update_bar(pbar, state, time):
 
 
 def node_simplicial_kuramoto(
-    time, phase, simplicial_complex=None, alpha_0=0, alpha_1=0, sigma=1.0, pbar=None, state=None
+    time, phase, simplicial_complex=None, alpha_0=0.0, alpha_1=0.0, sigma=1.0, pbar=None, state=None
 ):
     """Node simplicial kuramoto, or classical Kuramoto."""
     _update_bar(pbar, state, time)
-
-    if not isinstance(alpha_1, float):
-        alpha_1 = np.append(alpha_1, alpha_1)
     return -alpha_0 - sigma * simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
@@ -32,32 +29,43 @@ def node_simplicial_kuramoto(
 
 @use_with_xgi
 def integrate_node_kuramoto(
-    simplicial_complex, initial_phase, t_max, n_t, alpha_0=0, alpha_1=0, sigma=1.0
+    simplicial_complex,
+    initial_phase,
+    t_max,
+    n_t,
+    alpha_0=0.0,
+    alpha_1=0.0,
+    sigma=1.0,
+    disable_tqdm=False,
 ):
     """Integrate the node Kuramoto model."""
-    return solve_ivp(
-        partial(
-            node_simplicial_kuramoto,
-            simplicial_complex=simplicial_complex,
-            alpha_0=alpha_0,
-            alpha_1=alpha_1,
-            sigma=sigma,
-        ),
-        [0, t_max],
-        initial_phase,
-        t_eval=np.linspace(0, t_max, n_t),
-        method="BDF",
-        rtol=1.0e-8,
-        atol=1.0e-8,
-    )
+    with tqdm(total=n_t, disable=disable_tqdm) as pbar:
+        return solve_ivp(
+            partial(
+                node_simplicial_kuramoto,
+                simplicial_complex=simplicial_complex,
+                alpha_0=alpha_0,
+                alpha_1=alpha_1,
+                sigma=sigma,
+                pbar=pbar,
+                state=[0, t_max / n_t],
+            ),
+            [0, t_max],
+            initial_phase,
+            t_eval=np.linspace(0, t_max, n_t),
+            method="BDF",
+            rtol=1.0e-8,
+            atol=1.0e-8,
+        )
 
 
 def edge_simplicial_kuramoto(
     time,
     phase,
     simplicial_complex=None,
-    alpha_1=0,
-    alpha_2=0,
+    alpha_0=0.0,
+    alpha_1=0.0,
+    alpha_2=0.0,
     sigma_up=1.0,
     sigma_down=1.0,
     variant=None,
@@ -90,12 +98,21 @@ def edge_simplicial_kuramoto(
                 rhs += (1.0 + epsilon(r - 1)) * rhs_plus
         return -rhs
 
-    rhs = alpha_1 + sigma_down * simplicial_complex.N0.dot(
-        np.sin(simplicial_complex.N0s.dot(phase))
-    )
+    if variant == "non_invariant":
+        rhs = alpha_1 + sigma_down * simplicial_complex.N0.dot(
+            np.sin(simplicial_complex.N0s.dot(phase) + alpha_0)
+        )
+    else:
+
+        if not isinstance(alpha_0, float) and len(alpha_0) == simplicial_complex.n_nodes:
+            alpha_0 = np.append(alpha_0, alpha_0)
+
+        rhs = alpha_1 + sigma_down * simplicial_complex.lifted_N0n.dot(
+            np.sin(simplicial_complex.lifted_N0s.dot(phase) + alpha_0)
+        )
 
     if simplicial_complex.W2 is not None:
-        if not isinstance(alpha_2, float):
+        if not isinstance(alpha_2, float) and len(alpha_2) == simplicial_complex.n_faces:
             alpha_2 = np.append(alpha_2, alpha_2)
 
         if variant == "non_invariant":
@@ -115,8 +132,9 @@ def integrate_edge_kuramoto(
     initial_phase,
     t_max,
     n_t,
-    alpha_1=0,
-    alpha_2=0,
+    alpha_0=0.0,
+    alpha_1=0.0,
+    alpha_2=0.0,
     sigma_down=1.0,
     sigma_up=1.0,
     disable_tqdm=False,
@@ -153,6 +171,7 @@ def integrate_edge_kuramoto(
         rhs = partial(
             edge_simplicial_kuramoto,
             simplicial_complex=simplicial_complex,
+            alpha_0=alpha_0,
             alpha_1=alpha_1,
             alpha_2=alpha_2,
             sigma_up=sigma_up,

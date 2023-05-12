@@ -53,11 +53,14 @@ class SimplicialComplex:
         self._L0 = None
         self._L1 = None
 
+        self._V0 = None
         self._V1 = None
         self._V2 = None
 
         self._lifted_N0 = None
+        self._lifted_N0s = None
         self._lifted_N0sn = None
+        self._lifted_N0n = None
         self._lifted_N1 = None
         self._lifted_N1sn = None
 
@@ -218,8 +221,17 @@ class SimplicialComplex:
         return self._L1
 
     @property
+    def V0(self):
+        """Lift operator on nodes."""
+        if self._V0 is None:
+            self._V0 = sc.sparse.csr_matrix(
+                np.concatenate((np.eye(self.n_nodes), -np.eye(self.n_nodes)), axis=0)
+            )
+        return self._V0
+
+    @property
     def V1(self):
-        """Lift operator on faces."""
+        """Lift operator on edges."""
         if self._V1 is None:
             self._V1 = sc.sparse.csr_matrix(
                 np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
@@ -241,6 +253,20 @@ class SimplicialComplex:
         if self._lifted_N0 is None:
             self._lifted_N0 = self.V1.dot(self.N0)
         return self._lifted_N0
+
+    @property
+    def lifted_N0s(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0s is None:
+            self._lifted_N0s = self.N0s.dot(self.V1.T)
+        return self._lifted_N0s
+
+    @property
+    def lifted_N0n(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0n is None:
+            self._lifted_N0n = neg(self.lifted_N0)
+        return self._lifted_N0n
 
     @property
     def lifted_N0sn(self):
@@ -271,13 +297,13 @@ def use_with_xgi(func):
     """
 
     def _process(*args, **kwargs):
-        sc = _prepare(args[0])
+        sc = xgi_to_internal(args[0])
         return func(sc, *args[1:], **kwargs)
 
     return _process
 
 
-def _prepare(simplicial_complex):
+def xgi_to_internal(simplicial_complex):
     """Prepare simplicial complex if it is from xgi package to be used here as usual."""
     if isinstance(simplicial_complex, xgi.SimplicialComplex):
         B0 = sc.sparse.csr_matrix(
@@ -295,12 +321,13 @@ def _prepare(simplicial_complex):
             simplicial_complex.num_nodes,
             simplicial_complex.num_nodes,
         )
-        n_edges = sum(1 if len(e) == 2 else 0 for e in simplicial_complex.edges.members())
-        _W1 = sc.sparse.spdiags(np.ones(n_edges), 0, n_edges, n_edges)
-        n_faces = sum(1 if len(e) == 3 else 0 for e in simplicial_complex.edges.members())
+        _n_nodes = simplicial_complex.num_nodes
+        _n_edges = sum(1 if len(e) == 2 else 0 for e in simplicial_complex.edges.members())
+        _W1 = sc.sparse.spdiags(np.ones(_n_edges), 0, _n_edges, _n_edges)
+        _n_faces = sum(1 if len(e) == 3 else 0 for e in simplicial_complex.edges.members())
         _W2 = None
-        if n_faces > 0:
-            _W2 = sc.sparse.spdiags(np.ones(n_faces), 0, n_faces, n_faces)
+        if _n_faces > 0:
+            _W2 = sc.sparse.spdiags(np.ones(_n_faces), 0, _n_faces, _n_faces)
 
         W1_inv = _W1.copy()
         W1_inv.data = 1.0 / W1_inv.data
@@ -309,14 +336,16 @@ def _prepare(simplicial_complex):
             W2_inv = _W2.copy() if _W2 is not None else None
             W2_inv.data = 1.0 / W2_inv.data
 
-        V1 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_edges), -np.eye(n_edges)), axis=0))
-        V2 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_faces), -np.eye(n_faces)), axis=0))
+        V0 = sc.sparse.csr_matrix(np.concatenate((np.eye(_n_nodes), -np.eye(_n_nodes)), axis=0))
+        V1 = sc.sparse.csr_matrix(np.concatenate((np.eye(_n_edges), -np.eye(_n_edges)), axis=0))
+        V2 = sc.sparse.csr_matrix(np.concatenate((np.eye(_n_faces), -np.eye(_n_faces)), axis=0))
 
         class Sc:
             """Container to make xgi.SimplicialComplex look like internal one."""
 
-            n_nodes = simplicial_complex.num_nodes
-            n_edges = simplicial_complex.num_edges
+            n_nodes = _n_nodes
+            n_edges = _n_edges
+            n_faces = _n_faces
 
             W0 = _W0
             W1 = _W1
@@ -324,8 +353,10 @@ def _prepare(simplicial_complex):
 
             N0 = B0
             N0s = W0.dot(B0.T).dot(W1_inv)
-            lifted_N0 = V1.dot(N0)
-            lifted_N0sn = neg(N0s.dot(V1.T))
+            lifted_N0 = N0.dot(V0.T)
+            lifted_N0s = V0.dot(N0s)
+            lifted_N0sn = neg(lifted_N0s)
+            lifted_N0n = neg(lifted_N0)
 
             if W2 is not None:
                 N1s = W1.dot(B1.T).dot(W2_inv)

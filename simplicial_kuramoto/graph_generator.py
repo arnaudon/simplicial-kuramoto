@@ -149,7 +149,7 @@ def delaunay_with_holes(n_points=None, centres=None, radii=None, n_nodes_hole=20
     return graph, points
 
 
-def _make_simple_internal():
+def _make_simple_internal(larger=False):
     G = nx.Graph()
 
     G.add_edge(0, 1, weight=1)
@@ -157,23 +157,30 @@ def _make_simple_internal():
     G.add_edge(2, 0, weight=1)
     G.add_edge(0, 3, weight=1)
     G.add_edge(1, 3, weight=1)
+    if larger:
+        G.add_edge(0, 4, weight=1)
+        G.add_edge(4, 2, weight=1)
 
-    # pos = nx.spring_layout(G,)
     pos_ = {}
     pos_[0] = np.array([0, 0])
     pos_[1] = np.array([0, 1])
     pos_[2] = np.array([1, 0.5])
     pos_[3] = np.array([-1, 0.5])
+    if larger:
+        pos_[4] = np.array([1.0, -0.5])
 
     for n in G.nodes:
         G.nodes[n]["pos"] = pos_[n]
 
-    return SimplicialComplex(graph=G, faces=[[0, 1, 2]])
+    faces = [[0, 1, 2]]
+    if larger:
+        faces.append([0, 2, 4])
+    return SimplicialComplex(graph=G, faces=faces)
 
 
-def make_simple(plot=False):
+def make_simple(plot=False, larger=False):
     """Make simple simplicial complex with one face and one hole."""
-    sc = _make_simple_internal()
+    sc = _make_simple_internal(larger=larger)
     pos = {n: sc.graph.nodes[n]["pos"] for n in sc.graph.nodes}
     sc_xgi = xgi.SimplicialComplex([list(e) for e in sc.graph.edges])
     sc_xgi.add_simplices_from(sc.faces)
