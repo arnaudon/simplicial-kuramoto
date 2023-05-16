@@ -53,13 +53,20 @@ class SimplicialComplex:
         self._L0 = None
         self._L1 = None
 
+        self._V0 = None
         self._V1 = None
         self._V2 = None
 
         self._lifted_N0 = None
+        self._lifted_N0s = None
+        self._lifted_N0s_left = None
         self._lifted_N0sn = None
+        self._lifted_N0n = None
+        self._lifted_N0n_right = None
         self._lifted_N1 = None
+        self._lifted_N1n_right = None
         self._lifted_N1sn = None
+        self._lifted_N1s_left = None
 
         self.set_lexicographic()
         self.no_faces = no_faces
@@ -218,8 +225,17 @@ class SimplicialComplex:
         return self._L1
 
     @property
+    def V0(self):
+        """Lift operator on nodes."""
+        if self._V0 is None:
+            self._V0 = sc.sparse.csr_matrix(
+                np.concatenate((np.eye(self.n_nodes), -np.eye(self.n_nodes)), axis=0)
+            )
+        return self._V0
+
+    @property
     def V1(self):
-        """Lift operator on faces."""
+        """Lift operator on edges."""
         if self._V1 is None:
             self._V1 = sc.sparse.csr_matrix(
                 np.concatenate((np.eye(self.n_edges), -np.eye(self.n_edges)), axis=0)
@@ -243,6 +259,34 @@ class SimplicialComplex:
         return self._lifted_N0
 
     @property
+    def lifted_N0s(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0s is None:
+            self._lifted_N0s = self.N0s.dot(self.V1.T)
+        return self._lifted_N0s
+
+    @property
+    def lifted_N0s_left(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0s_left is None:
+            self._lifted_N0s_left = self.V0.dot(self.N0s)
+        return self._lifted_N0s_left
+
+    @property
+    def lifted_N0n(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0n is None:
+            self._lifted_N0n = neg(self.lifted_N0)
+        return self._lifted_N0n
+
+    @property
+    def lifted_N0n_right(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N0n_right is None:
+            self._lifted_N0n_right = neg(self.N0.dot(self.V0.T))
+        return self._lifted_N0n_right
+
+    @property
     def lifted_N0sn(self):
         """Create lifted version of incidence matrices."""
         if self._lifted_N0sn is None:
@@ -255,6 +299,20 @@ class SimplicialComplex:
         if self._lifted_N1 is None:
             self._lifted_N1 = self.V2.dot(self.N1)
         return self._lifted_N1
+
+    @property
+    def lifted_N1n_right(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N1n_right is None:
+            self._lifted_N1n_right = neg(self.N1.dot(self.V1.T))
+        return self._lifted_N1n_right
+
+    @property
+    def lifted_N1s_left(self):
+        """Create lifted version of incidence matrices."""
+        if self._lifted_N1s_left is None:
+            self._lifted_N1s_left = self.V1.dot(self.N1s)
+        return self._lifted_N1s_left
 
     @property
     def lifted_N1sn(self):
@@ -271,56 +329,24 @@ def use_with_xgi(func):
     """
 
     def _process(*args, **kwargs):
-        sc = _prepare(args[0])
+        sc = xgi_to_internal(args[0])
         return func(sc, *args[1:], **kwargs)
 
     return _process
 
 
-def _prepare(simplicial_complex):
-    """Prepare simplicial complex if it is from xgi package to be used here as usual."""
-    if isinstance(simplicial_complex, SimplicialComplex):
-        return simplicial_complex
-
+def xgi_to_internal(simplicial_complex):
+    """Convert xgi simplicial complex into internal simplicial complex structure."""
     if isinstance(simplicial_complex, xgi.SimplicialComplex):
-        B0 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 1, None, False).T)
-        B0 = B0[:, simplicial_complex.nodes]  # order as we do here
-        B1 = sc.sparse.csr_matrix(xgi.matrix.boundary_matrix(simplicial_complex, 2, None, False).T)
-
-        # here we use identity weight matrices, to improve later with xgi data
-        W0 = sc.sparse.spdiags(
-            np.ones(simplicial_complex.num_nodes),
-            0,
-            simplicial_complex.num_nodes,
-            simplicial_complex.num_nodes,
+        # we convert with incidence matrix to keep control on node ordering
+        B0 = sc.sparse.csr_matrix(
+            xgi.linalg.hodge_matrix.boundary_matrix(simplicial_complex, 1, None, False).T
         )
-        n_edges = sum(1 if len(e) == 2 else 0 for e in simplicial_complex.edges.members())
-        W1 = sc.sparse.spdiags(np.ones(n_edges), 0, n_edges, n_edges)
-        n_faces = sum(1 if len(e) == 3 else 0 for e in simplicial_complex.edges.members())
-        _W2 = sc.sparse.spdiags(np.ones(n_faces), 0, n_faces, n_faces)
+        B0 = B0[:, simplicial_complex.nodes]
+        A = B0.T.dot(B0).toarray()
+        A = np.diag(np.diag(A)) - A
+        graph = nx.from_numpy_array(A)
 
-        W1_inv = W1.copy()
-        W1_inv.data = 1.0 / W1.data
-        W2_inv = _W2.copy()
-        W2_inv.data = 1.0 / W2_inv.data
-
-        V1 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_edges), -np.eye(n_edges)), axis=0))
-        V2 = sc.sparse.csr_matrix(np.concatenate((np.eye(n_faces), -np.eye(n_faces)), axis=0))
-
-        class Sc:
-            """Container to make xgi.SimplicialComplex look like internal one."""
-
-            W2 = _W2
-
-            N0 = B0
-            N0s = W0.dot(B0.T).dot(W1_inv)
-            lifted_N0 = V1.dot(N0)
-            lifted_N0sn = neg(N0s.dot(V1.T))
-
-            N1s = W1.dot(B1.T).dot(W2_inv)
-            N1 = B1
-            lifted_N1 = V2.dot(N1)
-            lifted_N1sn = neg(N1s.dot(V2.T))
-
-        return Sc
-    raise Exception("SimplicialComplex structure now known")
+        faces = [list(e) for e in simplicial_complex.edges.members() if len(e) == 3]
+        return SimplicialComplex(graph=graph, faces=faces)
+    return simplicial_complex

@@ -14,7 +14,8 @@ import pandas as pd
 import scipy as sc
 from tqdm import tqdm
 
-from simplicial_kuramoto.integrators import integrate_edge_kuramoto
+from simplicial_kuramoto.integrators import compute_order_parameter, integrate_edge_kuramoto
+from simplicial_kuramoto.simplicial_complex import use_with_xgi
 
 L = logging.getLogger(__name__)
 
@@ -112,15 +113,16 @@ def scan_frustration_parameters(
     return results
 
 
+@use_with_xgi
 def get_subspaces(Gsc):
     """ "Get grad, curl and harm subspaces from simplicial complex."""
     grad_subspace = sc.linalg.orth(Gsc.N0.todense())
     try:
         curl_subspace = sc.linalg.orth(Gsc.N1s.todense())
     except (ValueError, AttributeError):
-        curl_subspace = np.zeros([len(Gsc.graph.edges), 0])
+        curl_subspace = np.zeros([Gsc.n_edges, 0])
 
-    harm_subspace = sc.linalg.null_space(Gsc.L1.todense())
+    harm_subspace = sc.linalg.null_space(Gsc.L1.todense(), rcond=1e-1)
     return grad_subspace, curl_subspace, harm_subspace
 
 
@@ -130,49 +132,6 @@ def proj_subspace(vec, subspace):
     for direction in subspace.T:
         proj += np.outer(vec.dot(direction), direction)
     return np.linalg.norm(proj, axis=1)
-
-
-def compute_node_order_parameter(result, Gsc):
-    """Compute the node Kuramoto order parameter."""
-    w1_inv = 1.0 / np.diag(Gsc.W1.toarray())
-    return w1_inv.dot(np.cos(Gsc.N0.dot(result))) / w1_inv.sum()
-
-
-def compute_order_parameter(result, Gsc, subset=None):
-    """Evaluate the order parameter, or the partial one for subset edges.
-    Args:
-        result (array): result of simulation (edge lenght by timepoints)
-        Gsc (SimplicialComplex): simplicial complex
-        subset (array): bool or int array of edges in the subset to consider
-
-    Returns:
-        total order, node order, face order
-    """
-    w0_inv = 1.0 / np.diag(Gsc.W0.toarray())
-    if Gsc.W2 is not None:
-        w2_inv = 1.0 / np.diag(Gsc.W2.toarray())
-
-    if subset is not None:
-        # if we have at least an adjacent edge in subset
-        w0_inv = w0_inv * np.clip(abs(Gsc.B0.T).dot(subset), 0, 1)
-        # if we have all 3 edges in subset
-        w2_inv = w2_inv * (abs(Gsc.B1).dot(subset) == 3)
-
-    order_node = w0_inv.dot(np.cos(Gsc.N0s.dot(result)))
-    norm_node = w0_inv.sum()
-
-    if Gsc.W2 is not None:
-        order_face = w2_inv.dot(np.cos(Gsc.N1.dot(result)))
-        norm_face = w2_inv.sum()
-    else:
-        order_face = 0
-        norm_face = 0
-
-    return (
-        (order_node + order_face) / (norm_node + norm_face),
-        order_node / norm_node,
-        order_face / norm_face if norm_face > 0 else 0,
-    )
 
 
 def get_projection_fit(
@@ -206,7 +165,7 @@ def _get_projections(result, frac, eps, grad_subspace, curl_subspace, harm_subsp
     curl_slope = curl_slope[0]
     harm_slope = harm_slope[0]
 
-    harm_order = np.mean(compute_order_parameter(res, Gsc)[0])
+    harm_order = np.mean(compute_order_parameter(Gsc, res)[0])
 
     grad = grad_slope if np.std(_grad) > eps or grad_slope > eps else np.nan
     curl = curl_slope if np.std(_curl) > eps or curl_slope > eps else np.nan
@@ -265,7 +224,7 @@ def _get_projections_1d(result, frac, eps, grad_subspace, curl_subspace, harm_su
     curl_slope = curl_slope[0]
     harm_slope = harm_slope[0]
 
-    harm_order = compute_order_parameter(res, Gsc)[0]
+    harm_order = compute_order_parameter(Gsc, res)[0]
     mean_harm_order = np.mean(harm_order)
     std_harm_order = np.std(harm_order)
 

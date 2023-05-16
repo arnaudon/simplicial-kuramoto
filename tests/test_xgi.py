@@ -2,7 +2,7 @@ import numpy as np
 import networkx as nx
 
 from simplicial_kuramoto import SimplicialComplex
-from simplicial_kuramoto.simplicial_complex import _prepare
+from simplicial_kuramoto.simplicial_complex import xgi_to_internal
 import xgi
 
 
@@ -53,10 +53,10 @@ def make_sc_xgi(sc):
     return sc_xgi
 
 
-def test_prepare_xgi():
+def test_xgi_to_internal():
     sc = make_sc_internal()
     sc_xgi = make_sc_xgi(sc)
-    _sc_xgi = _prepare(sc_xgi)
+    _sc_xgi = xgi_to_internal(sc_xgi)
 
     np.testing.assert_array_equal(sc.W2.toarray(), _sc_xgi.W2.toarray())
 
