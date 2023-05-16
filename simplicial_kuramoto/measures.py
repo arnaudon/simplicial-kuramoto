@@ -51,6 +51,13 @@ def compute_order_parameter(Gsc, result, subset=None):
     )
 
 
+@use_with_xgi
+def compute_face_order_parameter(Gsc, result):
+    """Compute the face Kuramoto order parameter."""
+    w1_inv = 1.0 / np.diag(Gsc.W1.toarray())
+    return w1_inv.dot(np.cos(Gsc.N1s.dot(result))) / w1_inv.sum()
+
+
 def norm(v, Winv):
     """Weighted norm."""
     return np.sqrt(v.T.dot(Winv).dot(v))

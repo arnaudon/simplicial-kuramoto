@@ -95,3 +95,4 @@ if __name__ == "__main__":
     plt.ylabel('order parameter')
     plt.legend()
     plt.savefig("stability_sigma_up.pdf")
+    plt.show()

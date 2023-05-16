@@ -22,6 +22,9 @@ def node_simplicial_kuramoto(
 ):
     """Node simplicial kuramoto, or classical Kuramoto."""
     _update_bar(pbar, state, time)
+
+    if not isinstance(alpha_1, float) and len(alpha_1) == simplicial_complex.n_edges:
+        alpha_1 = np.append(alpha_1, alpha_1)
     return -alpha_0 - sigma * simplicial_complex.lifted_N0sn.dot(
         np.sin(simplicial_complex.lifted_N0.dot(phase) + alpha_1)
     )
@@ -103,12 +106,10 @@ def edge_simplicial_kuramoto(
             np.sin(simplicial_complex.N0s.dot(phase) + alpha_0)
         )
     else:
-
         if not isinstance(alpha_0, float) and len(alpha_0) == simplicial_complex.n_nodes:
             alpha_0 = np.append(alpha_0, alpha_0)
-
-        rhs = alpha_1 + sigma_down * simplicial_complex.lifted_N0n.dot(
-            np.sin(simplicial_complex.lifted_N0s.dot(phase) + alpha_0)
+        rhs = alpha_1 + sigma_down * simplicial_complex.lifted_N0n_right.dot(
+            np.sin(simplicial_complex.lifted_N0s_left.dot(phase) + alpha_0)
         )
 
     if simplicial_complex.W2 is not None:
@@ -192,7 +193,48 @@ def integrate_edge_kuramoto(
         )
 
 
-def tower_kuramoto(
+def face_simplicial_kuramoto(
+    time, phase, simplicial_complex=None, alpha_2=0.0, sigma=1.0, pbar=None, state=None
+):
+    """Node simplicial kuramoto, or classical Kuramoto."""
+    _update_bar(pbar, state, time)
+
+    return -alpha_2 - sigma * simplicial_complex.lifted_N1n_right.dot(
+        np.sin(simplicial_complex.lifted_N1s_left.dot(phase))
+    )
+
+
+@use_with_xgi
+def integrate_face_kuramoto(
+    simplicial_complex,
+    initial_phase,
+    t_max,
+    n_t,
+    alpha_2=0.0,
+    sigma=1.0,
+    disable_tqdm=False,
+):
+    """Integrate the node Kuramoto model."""
+    with tqdm(total=n_t, disable=disable_tqdm) as pbar:
+        return solve_ivp(
+            partial(
+                face_simplicial_kuramoto,
+                simplicial_complex=simplicial_complex,
+                alpha_2=alpha_2,
+                sigma=sigma,
+                pbar=pbar,
+                state=[0, t_max / n_t],
+            ),
+            [0, t_max],
+            initial_phase,
+            t_eval=np.linspace(0, t_max, n_t),
+            method="BDF",
+            rtol=1.0e-8,
+            atol=1.0e-8,
+        )
+
+
+def dirac_kuramoto(
     time,
     phase,
     simplicial_complex=None,
@@ -201,38 +243,58 @@ def tower_kuramoto(
     alpha_2=None,
     sigma_0=1.0,
     sigma_1=1.0,
+    sigma_2=1.0,
+    z=1.00,
+    smooth_k=5,
     pbar=None,
     state=None,
 ):
-    """Tower kuramoto."""
+    """Dirac kuramoto which couples orders."""
     _update_bar(pbar, state, time)
     phase_node = phase[: simplicial_complex.n_nodes]
-    phase_edge = phase[simplicial_complex.n_nodes :]
+    phase_edge = phase[
+        simplicial_complex.n_nodes : simplicial_complex.n_nodes + simplicial_complex.n_edges
+    ]
+    phase_face = phase[simplicial_complex.n_nodes + simplicial_complex.n_edges :]
+
+    for _ in range(smooth_k):
+        phase_node = simplicial_complex.L0.dot(phase_node)
+        phase_edge = simplicial_complex.L1.dot(phase_edge)
 
     sol_node = node_simplicial_kuramoto(
         time,
         phase_node,
         simplicial_complex=simplicial_complex,
-        alpha_0=alpha_0 * simplicial_complex.N0s.dot(phase_edge),
-        alpha_1=phase_edge,
+        alpha_0=alpha_0,
+        alpha_1=-z * phase_edge,
         sigma=sigma_0,
     )
     sol_edge = edge_simplicial_kuramoto(
         time,
         phase_edge,
         simplicial_complex=simplicial_complex,
-        alpha_1=alpha_1 * simplicial_complex.N0.dot(phase_node),
-        alpha_2=alpha_2,
+        alpha_0=z * phase_node,
+        alpha_1=alpha_1,
+        alpha_2=z * phase_face,
         sigma_up=sigma_1,
         sigma_down=sigma_1,
         pbar=pbar,
         state=state,
     )
-    return np.append(sol_node, sol_edge)
+
+    sol_face = face_simplicial_kuramoto(
+        time,
+        phase_face,
+        simplicial_complex=simplicial_complex,
+        alpha_2=alpha_2,
+        sigma=sigma_2,
+    )
+    sol = np.append(sol_node, sol_edge)
+    return np.append(sol, sol_face)
 
 
 @use_with_xgi
-def integrate_tower_kuramoto(
+def integrate_dirac_kuramoto(
     simplicial_complex,
     initial_phase,
     t_max,
@@ -242,18 +304,24 @@ def integrate_tower_kuramoto(
     alpha_2=0,
     sigma_0=1.0,
     sigma_1=1.0,
+    sigma_2=1.0,
+    z=1.00,
+    smooth_k=5,
     disable_tqdm=False,
 ):
-    """Integrate the tower Kuramoto model."""
+    """Integrate the dirac Kuramoto model."""
     with tqdm(total=n_t, disable=disable_tqdm) as pbar:
         rhs = partial(
-            tower_kuramoto,
+            dirac_kuramoto,
             simplicial_complex=simplicial_complex,
             alpha_0=alpha_0,
             alpha_1=alpha_1,
             alpha_2=alpha_2,
             sigma_0=sigma_0,
             sigma_1=sigma_1,
+            sigma_2=sigma_2,
+            z=z,
+            smooth_k=smooth_k,
             pbar=pbar,
             state=[0, t_max / n_t],
         )

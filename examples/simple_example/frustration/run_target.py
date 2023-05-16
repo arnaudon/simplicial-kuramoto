@@ -147,7 +147,7 @@ if __name__ == "__main__":
     @use_with_xgi
     def lifted_natural_potentials(sc, alpha_1):
         """Natural potentials."""
-        beta_down = np.linalg.pinv(sc.lifted_N0n.toarray()).dot(alpha_1)
+        beta_down = np.linalg.pinv(sc.lifted_N0n_right.toarray()).dot(alpha_1)
         beta_up = np.linalg.pinv(sc.lifted_N1sn.toarray()).dot(alpha_1)
         return beta_down, beta_up
 
@@ -175,7 +175,7 @@ if __name__ == "__main__":
 
     phase_eq = np.linalg.pinv(sc.N0s.toarray()).dot(node_eq)
     Lup = sigma_up * sc.lifted_N1sn.dot(np.sin(sc.lifted_N1.dot(phase_eq)))
-    beta_down = np.linalg.pinv(sc.lifted_N0n.toarray()).dot(alpha_1 - Lup)
+    beta_down = np.linalg.pinv(sc.lifted_N0n_right.toarray()).dot(alpha_1 - Lup)
     node_eq = np.append(node_eq, -node_eq)
     alpha_0 = -np.arcsin(beta_down / sigma_down) + node_eq
 

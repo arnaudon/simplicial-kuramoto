@@ -76,3 +76,4 @@ if __name__ == "__main__":
     sns.heatmap(face_orders)
     plt.tight_layout()
     plt.savefig("nonlinear_coupling_scan_face.pdf")
+    plt.show()
