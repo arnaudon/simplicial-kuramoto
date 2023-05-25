@@ -20,11 +20,12 @@ from simplicial_kuramoto.measures import (
 
 
 if __name__ == "__main__":
-    t_max = 5
+    t_max = 3
     n_t = 1000
     np.random.seed(44)
 
     sc = make_simple(larger=True, plot=True)
+    plt.savefig("sc.pdf")
     n_edges = sum(1 if len(e) == 2 else 0 for e in sc.edges.members())
     sc = xgi_to_internal(sc)
     phase_init = np.random.uniform(0, 0.5, sc.n_edges)
@@ -37,7 +38,7 @@ if __name__ == "__main__":
 
     beta_down, beta_up = natural_potentials(sc, alpha_1)
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(4, 3))
     ax = fig.add_subplot(projection="3d")
     rEs = []
     for s in itertools.product(range(2), repeat=sc.n_nodes):
@@ -58,6 +59,7 @@ if __name__ == "__main__":
         ax.scatter(Es[:, 0], Es[:, 1], Es[:, 2], c=Es[:, 3], s=1.0)
     rEs = np.array(rEs)
     ax.scatter(rEs[:, 0], rEs[:, 1], rEs[:, 2], c="r", s=50)
+    plt.savefig("reachable_points.pdf")
     for node_eq in rEs[:1]:
         phase_eq = np.linalg.pinv(sc.N0s.toarray()).dot(node_eq)
 
@@ -73,19 +75,23 @@ if __name__ == "__main__":
         )
 
         order, node_order, face_order = compute_order_parameter(sc, edge_res.y)
-        plt.figure()
+        plt.figure(figsize=(4, 3))
         ys = xgi_to_internal(sc).N0s.dot(edge_res.y)
         for y in ys:
-            plt.plot(edge_res.t, y)
-        plt.gca().set_ylim(-1, 1)
+            plt.plot(edge_res.t, y, c="k")
+        plt.axis([0, 3, -1, 1])
+        plt.xlabel("time")
+        plt.ylabel("phase")
         plt.suptitle("eq solution initial cond")
+        plt.tight_layout()
+        plt.savefig("eq_sol_initial_cond.pdf")
+
 
     edge_res = integrate_edge_kuramoto(
         sc,
         phase_init,
         t_max,
         n_t,
-        variant="non_invariant",
         alpha_1=alpha_1,
         sigma_down=sigma_down,
         sigma_up=sigma_up,
@@ -93,12 +99,28 @@ if __name__ == "__main__":
     )
 
     order, node_order, face_order = compute_order_parameter(sc, edge_res.y)
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N0s.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
-    plt.suptitle("random initial cond, non OI")
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+
+    plt.xlabel("time")
+    plt.ylabel("phase")
+    plt.suptitle("random initial cond, OI, down")
+    plt.tight_layout()
+    plt.savefig("random_init_OI_down.pdf")
+
+    plt.figure(figsize=(4, 3))
+    ys = xgi_to_internal(sc).N1.dot(edge_res.y)
+    for y in ys:
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase+")
+    plt.suptitle("random initial cond, OI, up")
+    plt.tight_layout()
+    plt.savefig("random_init_OI_up.pdf")
 
     alpha_0 = -np.arcsin(beta_down / sigma_down)
 
@@ -115,12 +137,27 @@ if __name__ == "__main__":
         disable_tqdm=True,
     )
 
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N0s.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
-    plt.suptitle("random initial cond, constraint to 0, non OI")
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase-")
+    plt.suptitle("random initial cond, constraint to 0, non OI, down")
+    plt.tight_layout()
+    plt.savefig("random_init_control_0_non_OI_down.pdf")
+
+    plt.figure(figsize=(4, 3))
+    ys = xgi_to_internal(sc).N1.dot(edge_res.y)
+    for y in ys:
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase+")
+    plt.suptitle("random initial cond, constraint to 0, non OI, up")
+    plt.tight_layout()
+    plt.savefig("random_init_control_0_non_OI_up.pdf")
 
     alpha_0 = -np.arcsin(beta_down / sigma_down) + node_eq
 
@@ -137,20 +174,27 @@ if __name__ == "__main__":
         disable_tqdm=True,
     )
 
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N0s.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase")
     plt.suptitle("random initial cond, constraint to -eq solution, non OI, down")
+    plt.tight_layout()
+    plt.savefig("random_init_control_-eq_non_OI_down.pdf")
 
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N1.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase")
     plt.suptitle("random initial cond, constraint to -eq solution, non OI, up")
-
+    plt.tight_layout()
+    plt.savefig("random_init_control_-eq_non_OI_up.pdf")
 
     beta_down = np.linalg.pinv(sc.N0s.dot(sc.lifted_N0n_right).toarray()).dot(
         sc.N0s.toarray().dot(alpha_1)
@@ -169,12 +213,27 @@ if __name__ == "__main__":
         disable_tqdm=True,
     )
 
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N0s.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
-    plt.suptitle("random initial cond, constraint to 0, OI")
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase")
+    plt.suptitle("random initial cond, constraint to 0, OI, down")
+    plt.tight_layout()
+    plt.savefig("random_init_control_0_OI_down.pdf")
+
+    plt.figure(figsize=(4, 3))
+    ys = xgi_to_internal(sc).N1.dot(edge_res.y)
+    for y in ys:
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase")
+    plt.suptitle("random initial cond, constraint to 0, OI, up")
+    plt.tight_layout()
+    plt.savefig("random_init_control_0_OI_up.pdf")
 
     phase_eq = np.linalg.pinv(sc.N0s.toarray()).dot(node_eq)
     Lup = sigma_up * sc.lifted_N1sn.dot(np.sin(sc.lifted_N1.dot(phase_eq)))
@@ -194,19 +253,26 @@ if __name__ == "__main__":
         disable_tqdm=True,
     )
 
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N0s.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase")
     plt.suptitle("random initial cond, constraint to -eq solution, OI, down")
+    plt.tight_layout()
+    plt.savefig("random_init_control_-eq_OI_down.pdf")
 
-    plt.figure()
+    plt.figure(figsize=(4, 3))
     ys = xgi_to_internal(sc).N1.dot(edge_res.y)
     for y in ys:
-        plt.plot(edge_res.t, y)
-    plt.gca().set_ylim(-1, 1)
+        plt.plot(edge_res.t, y, c="k")
+    plt.axis([0, 3, -1, 1])
+    plt.xlabel("time")
+    plt.ylabel("phase")
     plt.suptitle("random initial cond, constraint to -eq solution, OI, up")
-
+    plt.tight_layout()
+    plt.savefig("random_init_control_-eq_OI_up.pdf")
 
     plt.show()
