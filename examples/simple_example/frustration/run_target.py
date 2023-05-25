@@ -142,16 +142,19 @@ if __name__ == "__main__":
     for y in ys:
         plt.plot(edge_res.t, y)
     plt.gca().set_ylim(-1, 1)
-    plt.suptitle("random initial cond, constraint to -eq solution, non OI")
+    plt.suptitle("random initial cond, constraint to -eq solution, non OI, down")
 
-    @use_with_xgi
-    def lifted_natural_potentials(sc, alpha_1):
-        """Natural potentials."""
-        beta_down = np.linalg.pinv(sc.lifted_N0n_right.toarray()).dot(alpha_1)
-        beta_up = np.linalg.pinv(sc.lifted_N1sn.toarray()).dot(alpha_1)
-        return beta_down, beta_up
+    plt.figure()
+    ys = xgi_to_internal(sc).N1.dot(edge_res.y)
+    for y in ys:
+        plt.plot(edge_res.t, y)
+    plt.gca().set_ylim(-1, 1)
+    plt.suptitle("random initial cond, constraint to -eq solution, non OI, up")
 
-    beta_down, beta_up = lifted_natural_potentials(sc, alpha_1)
+
+    beta_down = np.linalg.pinv(sc.N0s.dot(sc.lifted_N0n_right).toarray()).dot(
+        sc.N0s.toarray().dot(alpha_1)
+    )
     alpha_0 = -np.arcsin(beta_down / sigma_down)
 
     edge_res = integrate_edge_kuramoto(
@@ -175,10 +178,10 @@ if __name__ == "__main__":
 
     phase_eq = np.linalg.pinv(sc.N0s.toarray()).dot(node_eq)
     Lup = sigma_up * sc.lifted_N1sn.dot(np.sin(sc.lifted_N1.dot(phase_eq)))
-    beta_down = np.linalg.pinv(sc.lifted_N0n_right.toarray()).dot(alpha_1 - Lup)
-    node_eq = np.append(node_eq, -node_eq)
-    alpha_0 = -np.arcsin(beta_down / sigma_down) + node_eq
-
+    beta_down = np.linalg.pinv(sc.N0s.dot(sc.lifted_N0n_right).toarray()).dot(
+        sc.N0s.toarray().dot(alpha_1 - Lup)
+    )
+    alpha_0 = -np.arcsin(beta_down / sigma_down) + np.append(node_eq, -node_eq)
     edge_res = integrate_edge_kuramoto(
         sc,
         phase_init,
@@ -196,6 +199,14 @@ if __name__ == "__main__":
     for y in ys:
         plt.plot(edge_res.t, y)
     plt.gca().set_ylim(-1, 1)
-    plt.suptitle("random initial cond, constraint to -eq solution, OI")
+    plt.suptitle("random initial cond, constraint to -eq solution, OI, down")
+
+    plt.figure()
+    ys = xgi_to_internal(sc).N1.dot(edge_res.y)
+    for y in ys:
+        plt.plot(edge_res.t, y)
+    plt.gca().set_ylim(-1, 1)
+    plt.suptitle("random initial cond, constraint to -eq solution, OI, up")
+
 
     plt.show()
