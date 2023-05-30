@@ -11,6 +11,20 @@ at: https://arxiv.org/pdf/2111.11073.pdf
 It numerically solves the Kuramoto model on simplicial complexes of order 1 (a graph) and 2 (a graph with faces), with node/edge/face weights and frustration.
 A small suite of analysis tool is available to compute the Hodge decomposition of the solution, the simplicial order parameter or the largest Lyapunov exponent.
 
+It also contains the models introduced in
+```
+A unified framework for Simplicial Kuramoto models
+by: Marco Nurisso, Alexis Arnaudon, Maxime Lucas, Robert L. Peach, Paul Expert, Francesco Vaccarino, Giovanni Petri
+at: https://arxiv.org/abs/2305.17977
+```
+
+and the connectome example in `example/connectome_example`, based on  
+```
+M. Pope, M. Fukushima, R. F. Betzel, and O. Sporns,
+Modular origins of high-amplitude cofluctuations in fine-scale functional connectivity dynamics, Proc. Natl. Acad.
+Sci. U.S.A. 118, e2109380118 (2021).
+```
+
 # Installation
 
 To install, clone the repository, and run in the main folder
