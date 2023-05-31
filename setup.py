@@ -6,7 +6,7 @@ setup(
     name="simplicial-kuramoto",
     author="Alexis Arnaudon",
     author_email="alexis.arnaudon@epfl.ch",
-    version="0.0.1",
+    version="0.0.2",
     description="",
     install_requires=[
         "numpy>=1.15.0",
