@@ -1,5 +1,10 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7988477.svg)](https://doi.org/10.5281/zenodo.7988477)
-
+[![Downloads](https://static.pepy.tech/badge/tox)](https://pepy.tech/project/tox)
+[![Documentation status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://arnaudon.github.io/simplicial-kuramoto/)
+[![PyPI version](https://badge.fury.io/py/simplicial-kuramoto.svg)](https://badge.fury.io/py/simplicial-kuramoto)
+[![codecov](https://codecov.io/gh/arnaudon/simplicial-kuramoto/branch/master/graph/badge.svg?token=STP9DFO8MN)](https://codecov.io/gh/arnaudon/simplicial-kuramoto)
+[![Actions Status](https://github.com/arnaudon/simplicial-kuramoto/actions/workflows/run-tox.yml/badge.svg?branch=master)](https://github.com/arnaudon/simplicial-kuramoto/actions)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 # Simplicial Kuramoto
 
