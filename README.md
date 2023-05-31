@@ -1,5 +1,4 @@
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7988477.svg)](https://doi.org/10.5281/zenodo.7988477)
-[![Downloads](https://static.pepy.tech/badge/simplicial-kuramoto)](https://pepy.tech/project/simplicial-kuramoto)
 [![Documentation status](https://readthedocs.org/projects/docs/badge/?version=latest)](https://arnaudon.github.io/simplicial-kuramoto/)
 [![PyPI version](https://badge.fury.io/py/simplicial-kuramoto.svg)](https://badge.fury.io/py/simplicial-kuramoto)
 [![codecov](https://codecov.io/gh/arnaudon/simplicial-kuramoto/branch/master/graph/badge.svg?token=STP9DFO8MN)](https://codecov.io/gh/arnaudon/simplicial-kuramoto)
