@@ -34,7 +34,7 @@ pip install simplicial-kuramoto
 
 # Usage
 
-The documentation will come soon, but meanwhile:
+The documentation is available here: https://arnaudon.github.io/simplicial-kuramoto/, and the structure of the code is as follow:
 
 - The module `simplicial_complex.py` extends networkx graph to include faces and computed cached values of various graph theoretical operators such as boundary operators, or Hodge Laplacians.
 - The module `meausures.py` contains some measurements functions of the dynamics such as order parameters.
