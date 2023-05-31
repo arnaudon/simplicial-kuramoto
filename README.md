@@ -27,7 +27,7 @@ Sci. U.S.A. 118, e2109380118 (2021).
 
 # Installation
 
-To install, clone the repository, and run in the main folder (it will appear on pypi soon):
+To install, it is on pypi.org, hence just do:
 ```
 pip install simplicial-kuramoto
 ```
