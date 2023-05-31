@@ -27,17 +27,20 @@ Sci. U.S.A. 118, e2109380118 (2021).
 
 # Installation
 
-To install, clone the repository, and run in the main folder
+To install, clone the repository, and run in the main folder (it will appear on pypi soon):
 ```
 pip install simplicial-kuramoto
 ```
 
 # Usage
 
+The documentation will come soon, but meanwhile:
+
 - The module `simplicial_complex.py` extends networkx graph to include faces and computed cached values of various graph theoretical operators such as boundary operators, or Hodge Laplacians.
+- The module `meausures.py` contains some measurements functions of the dynamics such as order parameters.
 - The module `graph_generator.py` contains a few functions to build simplicial complexes.
 - The module `integrators.py` solve the Kuramoto model on a given simplicial complex.
 - The module `plotting.py` has some plotting functions of the simplicial complex and the Kuramoto solution.
 - The module `frustration_scan.py` contains analysis tools to study frustration of simplicial Kuramoto.
 
-In the folder `examples` are present scripts to generate the figures of the paper. 
+In the folder `examples` are present scripts to generate the figures of the first paper as well as run some of the models of the second paper.
