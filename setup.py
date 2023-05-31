@@ -2,6 +2,15 @@
 
 from setuptools import find_packages, setup
 
+test_require = [
+    "pyyaml",
+    "dictdiffer",
+    "pytest",
+    "pytest-cov",
+    "pytest-html",
+    "diff-pdf-visually",
+    "ipython!=8.7.0",  # see https://github.com/spatialaudio/nbsphinx/issues/687
+]
 setup(
     name="simplicial-kuramoto",
     author="Alexis Arnaudon",
@@ -16,7 +25,11 @@ setup(
         "pandas>=1.0.2",
         "tqdm",
         "nolds",
+        "xgi",
     ],
-    extras_require={"all": ["xgi"]},
+    extras_require={
+        "all": test_require,
+        "test": test_require,
+    },
     packages=find_packages(),
 )
