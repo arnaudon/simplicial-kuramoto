@@ -1,3 +1,6 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7988477.svg)](https://doi.org/10.5281/zenodo.7988477)
+
+
 # Simplicial Kuramoto
 
 This repository contains the code written to produce the figures of
